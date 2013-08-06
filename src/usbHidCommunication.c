@@ -102,7 +102,7 @@ static void detachUsbDevice()
 } // END detachUsbDevice Method
 
 
-// Constructor method
+// Initializes the hid communication instance 
 static void initUsbHidCommunication()
 {
 	int loopCounter;
@@ -319,361 +319,12 @@ static DWORD WINAPI usbWorkerThread(LPVOID pData)
 	OutputDebugString("usbWorkerThread: Worker thread exited");
 	return 0;
 } // END usbWorkerThread method
-	
+
 // This method attempts to find the target USB device and discover the device's path
-//
 // Note: A limitation of this routine is that it cannot deal with two or more devices
-//       connected to the host that have the same VID and PID, it will simply pick
-//       the first one it finds...
-// Dont work on win32 but work on win64
+// connected to the host that have the same VID and PID, it will simply pick
+// the first one it finds...
 static void findDevice(int usbVid, int usbPid)
-{
-	DWORD InterfaceIndex = 0;
-	DWORD StatusLastError = 0;				
-	//DWORD dwRegSize;
-	DWORD dwRegType;
-	DWORD StructureSize = 0;
-	LPTSTR PropertyValueBuffer = NULL;
-	DWORD PropertyValueBufferSize = 0;					
-	//BOOL MatchFound = FALSE;
-	DWORD ErrorStatus;
-	DWORD ErrorStatusWrite;
-	DWORD ErrorStatusRead;
-	DWORD ErrorStatusFeature;
-	DWORD i = 0;
-
-	// for DEBUG, REMOVE!
-	//char debugOutput[20];
-	//int loopCounter = 0;
-	//DWORD bytesRead = 0;
-	//DWORD bytesWritten = 0;
-
-
-
-	// Define the Globally Unique Identifier (GUID) for HID class devices:
-	GUID InterfaceClassGuid = {0x4d1e55b2, 0xf16f, 0x11cf, 0x88, 0xcb, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30}; 
-
-	// Initialise required datatypes and variables
-	HDEVINFO DeviceInfoTable = INVALID_HANDLE_VALUE;
-	PSP_DEVICE_INTERFACE_DATA InterfaceDataStructure = (PSP_DEVICE_INTERFACE_DATA)malloc(sizeof(InterfaceDataStructure));
-	PSP_DEVICE_INTERFACE_DETAIL_DATA DetailedInterfaceDataStructure = (PSP_DEVICE_INTERFACE_DETAIL_DATA)malloc(sizeof(DetailedInterfaceDataStructure));
-	SP_DEVINFO_DATA DevInfoData;		
-
-							
-	// Construct the VID and PID in the correct string format for Windows
-	// "Vid_hhhh&Pid_hhhh" - where hhhh is a four digit hexadecimal number
-	//char usbVidHex[5];
-	//char usbPidHex[5];
-
-	char usbId[18];
-
-	LPTSTR DeviceIDToFind;
-
-	LPTSTR DeviceIDFromRegistry;
-
-	OutputDebugString("findDevice: Seaching for device ID below");
-
-	snprintf(usbId, 18, "VID_%04X&PID_%04X", usbVid, usbPid);
-	DeviceIDToFind = usbId;
-
-	OutputDebugString(DeviceIDToFind);				
-
-	//LocalFree(usbVidHex);
-	//LocalFree(usbPidHex);
-	LocalFree(usbId);
-
-	OutputDebugString("findDevice: Detaching USB device in case of...");
-
-	// If the device is currently flagged as attached then we are 'rechecking' the device, probably
-	// due to some message receieved from Windows indicating a device status chanage.  In this case
-	// we should detach the USB device cleanly (if required) before reattaching it.
-	detachUsbDevice();
-
-	OutputDebugString("findDevice: SetupDiGetClassDevs: Initializing HID class devices...");
-
-	// Here we populate a list of plugged-in devices matching our class GUID (DIGCF_PRESENT specifies that the list
-	// should only contain devices which are plugged in)
-	DeviceInfoTable = SetupDiGetClassDevs(&InterfaceClassGuid, NULL, 0, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
-
-	if (DeviceInfoTable == INVALID_HANDLE_VALUE)
-	{
-		OutputDebugString("findDevice: Cannot get devices with the specified GUID");
-	}
-				
-	// Look through the retrieved list of class GUIDs looking for a match on our interface GUID       
-	DevInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
-				
-	OutputDebugString("findDevice: SetupDiEnumDeviceInfo: Enumerating devices...");
-
-	for (i=0;SetupDiEnumDeviceInfo(DeviceInfoTable,i,
-		&DevInfoData);i++)
-	{
-	// TEST: TRY
-	/*InterfaceDataStructure.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
-	for  (i=0;SetupDiEnumDeviceInterfaces(DeviceInfoTable,NULL, &InterfaceClassGuid, i, &InterfaceDataStructure);i++)
-	{*/
-		OutputDebugString("findDevice: SetupDiEnumDeviceInterfaces: Getting device interface data...");
-					
-		InterfaceDataStructure->cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
-		if (SetupDiEnumDeviceInterfaces(DeviceInfoTable, &DevInfoData, &InterfaceClassGuid, 0, InterfaceDataStructure))
-		{
-			// Check for an error
-			ErrorStatus = GetLastError();
-
-			// Are we at the end of the list?
-			if (ERROR_NO_MORE_ITEMS == ErrorStatus)
-			{
-				OutputDebugString("findDevice: Device is not attached, clean up memory and return with error status");
-
-				// Device is not attached, clean up memory and return with error status
-				SetupDiDestroyDeviceInfoList(DeviceInfoTable);
-				deviceAttached = FALSE;
-				deviceAttachedButBroken = FALSE;
-				return;		
-			}
-		}
-		else
-		{
-			OutputDebugString("findDevice: Cannot get device interface data.");
-
-			// An unknown error occurred! Clean up memory and return with error status
-			ErrorStatus = GetLastError();
-			SetupDiDestroyDeviceInfoList(DeviceInfoTable);
-			deviceAttached = FALSE;
-			deviceAttachedButBroken = FALSE;
-			return;	
-		}
-
-		// Now we have devices with a matching class GUID and interface GUID we need to get the hardware IDs for 
-		// the devices.  From that we can get the VID and PID in order to find our target device.
-
-		// Initialize an appropriate SP_DEVINFO_DATA structure.  We need this structure for calling
-		// SetupDiGetDeviceRegistryProperty()
-		//DevInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
-		//SetupDiEnumDeviceInfo(DeviceInfoTable, InterfaceIndex, &DevInfoData);
-
-		OutputDebugString("findDevice: SetupDiGetDeviceRegistryProperty: Getting device Hardware ID from registry...");
-
-		// Firstly we have to determine the size of the query so we can allocate memory to store the returned
-		// hardware ID structure
-		//SetupDiGetDeviceRegistryProperty(DeviceInfoTable, &DevInfoData, SPDRP_HARDWAREID, &dwRegType, NULL, 0, &dwRegSize);
-
-		// Call function with null to begin with, 
-		// then use the returned buffer size (doubled)
-		// to Alloc the buffer. Keep calling until
-		// success or an unknown failure.
-		//
-		//  Double the returned buffersize to correct
-		//  for underlying legacy CM functions that 
-		//  return an incorrect buffersize value on 
-		//  DBCS/MBCS systems.
-					
-		while (!SetupDiGetDeviceRegistryProperty(
-			DeviceInfoTable,
-			&DevInfoData,
-			SPDRP_HARDWAREID,
-			&dwRegType,
-			(PBYTE)PropertyValueBuffer,
-			PropertyValueBufferSize,
-			&PropertyValueBufferSize))
-		{
-
-			if (GetLastError() == 
-				ERROR_INSUFFICIENT_BUFFER)
-			{
-				// Change the buffer size.
-				if (PropertyValueBuffer) LocalFree(PropertyValueBuffer);
-				// Double the size to avoid problems on 
-				// W2k MBCS systems per KB 888609. 
-				PropertyValueBuffer = LocalAlloc(LPTR,PropertyValueBufferSize * 2);
-			}
-			else
-			{
-				// Insert error handling here.
-				break;
-			}
-		}
-
-		// Test to ensure the memory was allocated:
-		if(PropertyValueBuffer == NULL)
-		{
-			OutputDebugString("findDevice: Hardware ID not allocated, clean up memory and return with error status");
-						
-			SetupDiDestroyDeviceInfoList(DeviceInfoTable);
-			deviceAttached = FALSE;
-			deviceAttachedButBroken = FALSE;
-			return;		
-		}
-
-		//OutputDebugString("SetupDiGetDeviceRegistryProperty");
-
-		// Get the hardware ID for the current device.  The PropertyValueBuffer gets filled with an array
-		// of NULL terminated strings (REG_MULTI_SZ).  The first string in the buffer contains the 
-		// hardware ID in the format "Vid_xxxx&Pid_xxxx" so we compare that against our target device
-		// identifier to see if we have a match.
-		// SetupDiGetDeviceRegistryProperty(DeviceInfoTable, &DevInfoData, SPDRP_HARDWAREID, &dwRegType,
-		//	(PBYTE)PropertyValueBuffer, dwRegSize, NULL);
-
-		// Get the string					
-		DeviceIDFromRegistry = PropertyValueBuffer;
-		//String^ DeviceIDFromRegistry = new std::string((wchar_t *)PropertyValueBuffer);
-
-		// We don't need the PropertyValueBuffer any more so we free the memory
-		//if (PropertyValueBuffer) LocalFree(PropertyValueBuffer);
-
-		// Convert the strings to lowercase
-		//std::transform(DeviceIDFromRegistry.begin(), DeviceIDFromRegistry.end(), DeviceIDFromRegistry.begin(), ::tolower);
-		// DeviceIDFromRegistry = DeviceIDFromRegistry->ToLowerInvariant();	
-		//std::transform(DeviceIDToFind.begin(), DeviceIDToFind.end(), DeviceIDToFind.begin(), ::tolower);
-		//DeviceIDToFind = DeviceIDToFind->ToLowerInvariant();
-
-		// Check if the deviceID has the correct VID and PID
-		//td::find(DeviceIDToFind)
-		//MatchFound = DeviceIDFromRegistry->Contains(DeviceIDToFind);
-		//MatchFound = strstr(DeviceIDFromRegistry, DeviceIDToFind) == 0;
-
-		OutputDebugString("findDevice: Device ID from registry is below");
-		OutputDebugString(DeviceIDFromRegistry);					
-
-		if(NULL != strstr(DeviceIDFromRegistry, DeviceIDToFind))
-		{
-			OutputDebugString("findDevice: ! Device found ! Will retrieve the device path...");
-
-			// The target device has been found, now we need to retrieve the device path so we can open
-			// the read and write handles required for USB communication
-
-			// First call to determine the size of the returned structure
-			DetailedInterfaceDataStructure->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
-			SetupDiGetDeviceInterfaceDetail(DeviceInfoTable, InterfaceDataStructure, NULL, 0, &StructureSize, NULL);
-
-			// Allocate the memory required
-			DetailedInterfaceDataStructure = (PSP_DEVICE_INTERFACE_DETAIL_DATA)(malloc(StructureSize));
-
-			// Test to ensure the memory was allocated
-			if(DetailedInterfaceDataStructure == NULL)
-			{
-				// Not enough memory... clean up and return error status
-				SetupDiDestroyDeviceInfoList(DeviceInfoTable);
-				deviceAttached = FALSE;
-				deviceAttachedButBroken = FALSE;
-				return;		
-			}
-
-			OutputDebugString("findDevice: SetupDiGetDeviceInterfaceDetail: Getting device interface detail to open the read and write handles required for USB communication...");
-
-			// Now we call it again to get the structure
-			DetailedInterfaceDataStructure->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);  
-			SetupDiGetDeviceInterfaceDetail(DeviceInfoTable, InterfaceDataStructure, DetailedInterfaceDataStructure,
-				StructureSize, NULL, NULL); 
-						
-			OutputDebugString("findDevice: Device path is below");
-			OutputDebugString(DetailedInterfaceDataStructure->DevicePath);
-
-			// Open the write handle
-			WriteHandle = CreateFile((DetailedInterfaceDataStructure->DevicePath), 
-				GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
-			ErrorStatusWrite = GetLastError();
-
-			// Open the read handle
-			ReadHandle = CreateFile((DetailedInterfaceDataStructure->DevicePath),
-				GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
-			ErrorStatusRead = GetLastError();
-
-			// Open the feature handle
-			FeatureHandle = CreateFile((DetailedInterfaceDataStructure->DevicePath),
-				GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
-			ErrorStatusFeature = GetLastError();
-
-			// Check to see if we opened the read and write handles successfully
-			if((ErrorStatusWrite == ERROR_SUCCESS) && (ErrorStatusRead == ERROR_SUCCESS) && (ErrorStatusFeature == ERROR_SUCCESS))
-			{
-				OutputDebugString("findDevice: Success ! Device is now attached");
-
-				// DEBUG CODE
-							
-				//outputBuffer[0] = 0;
-				//outputBuffer[1] = 56;
-				//inputBuffer[0] = 0;
-
-				//ReadFile(ReadHandle, &inputBuffer[0], 65, &bytesRead, 0);
-				////ReadFile(ReadHandle, &inputBuffer, 65, &bytesRead, 0);
-				//OutputDebugString("init: Read in input buffer");
-				//_snprintf(debugOutput, 20, "%d", bytesRead);
-				//OutputDebugString(debugOutput);
-				//for (loopCounter = 0; loopCounter < 65; loopCounter++) 
-				//{
-				//_snprintf(debugOutput, 20, "%d", inputBuffer[loopCounter]);
-				//OutputDebugString(debugOutput);
-				//}
-
-				//WriteFile(WriteHandle, &outputBuffer, 65, &bytesWritten, 0);
-				//_snprintf(debugOutput, 20, "%d", bytesWritten);
-				//OutputDebugString(debugOutput);
-
-				//OutputDebugString("Write to ouput buffer");
-				//_snprintf(debugOutput, 20, "%d", outputBuffer[0]);
-				//OutputDebugString(debugOutput);
-				//_snprintf(debugOutput, 20, "%d", outputBuffer[1]);
-				//OutputDebugString(debugOutput);
-				//_snprintf(debugOutput, 20, "%d", outputBuffer[2]);
-				//OutputDebugString(debugOutput);
-				//for (loopCounter = 0; loopCounter < 65; loopCounter++) 
-				//{
-				//WriteFile(WriteHandle, &outputBuffer[0], loopCounter, &bytesWritten, 0);
-				//_snprintf(debugOutput, 20, "%d:%d", loopCounter, bytesWritten);			
-				//OutputDebugString(debugOutput);
-				//}
-
-
-				/*WriteFile(WriteHandle, &outputBuffer[0], 65, &bytesWritten, 0);
-				WriteFile(WriteHandle, outputBuffer, 65, &bytesWritten, 0);
-				WriteFile(WriteHandle, outputBuffer, 2, &bytesWritten, 0);
-				WriteFile(WriteHandle, &outputBuffer, 65, &bytesWritten, 0);
-				WriteFile(WriteHandle, &outputBuffer[1], 1, &bytesWritten, 0);
-				WriteFile(WriteHandle, &outputBuffer[0], 2, &bytesWritten, 0);
-				WriteFile(WriteHandle, &outputBuffer[1], 2, &bytesWritten, 0);
-				WriteFile(WriteHandle, &outputBuffer[1], 2, &bytesWritten, 0);*/
-
-				// File handles opened successfully, device is now attached
-				deviceAttached = TRUE;
-				deviceAttachedButBroken = FALSE;
-
-				// Start the device communication worker thread
-				usbWorkerThreadHandle = CreateThread(NULL, 0, &usbWorkerThread, 0, 0, NULL);	
-			}
-			else
-			{
-				OutputDebugString("findDevice: Failed ! Something went wrong... Can't use the device :(");
-
-				// Something went wrong... If we managed to open either handle close them
-				// and set deviceAttachedButBroken since we found the device but, for some
-				// reason, can't use it.
-				if(ErrorStatusWrite == ERROR_SUCCESS)
-					CloseHandle(WriteHandle);
-				if(ErrorStatusRead == ERROR_SUCCESS)
-					CloseHandle(ReadHandle);
-				if(ErrorStatusFeature == ERROR_SUCCESS)
-					CloseHandle(FeatureHandle);
-
-				deviceAttached = FALSE;
-				deviceAttachedButBroken = TRUE;
-			}
-						
-			return;
-		} // END if
-	}
-
-	OutputDebugString("findDevice: SetupDiEnumDeviceInfo: Enumerate device ended.");
-
-	// Clean up the memory
-	if (PropertyValueBuffer) LocalFree(PropertyValueBuffer);
-	if (DeviceIDToFind) LocalFree(DeviceIDToFind);
-	if (DeviceIDFromRegistry) LocalFree(DeviceIDFromRegistry);
-	SetupDiDestroyDeviceInfoList(DeviceInfoTable);				
-} // END findDevice method
-			
-/* WORK on win32 & win64
-void testFind2()
 {
 	HDEVINFO                         hDevInfo;
 	SP_DEVICE_INTERFACE_DATA         DevIntfData;
@@ -684,11 +335,31 @@ void testFind2()
 	HKEY hKey;
 	BYTE lpData[1024];
 
-	//GUID GUID_DEVINTERFACE_USB_DEVICE = {0xA5DCBF10L, 0x6530, 0x11D2, 0x90, 0x1F, 0x00, 0xC0, 0x4F, 0xB9, 0x51, 0xED};
+	char usbId[18];
+	LPTSTR DeviceIDToFind;
+
+	DWORD ErrorStatus;
+	DWORD ErrorStatusWrite;
+	DWORD ErrorStatusRead;
+	DWORD ErrorStatusFeature;
+
 	GUID GUID_DEVINTERFACE_USB_DEVICE = {0x4d1e55b2, 0xf16f, 0x11cf, 0x88, 0xcb, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30};
 
-	OutputDebugString("testFind2");
+	// Device ID
+	OutputDebugString("findDevice: Seaching for device ID below");
+	snprintf(usbId, 18, "VID_%04X&PID_%04X", usbVid, usbPid);
+	DeviceIDToFind = usbId;
+	OutputDebugString(DeviceIDToFind);				
 
+	LocalFree(usbId);
+
+	OutputDebugString("findDevice: Detaching USB device in case of...");
+	// If the device is currently flagged as attached then we are 'rechecking' the device, probably
+	// due to some message receieved from Windows indicating a device status chanage.  In this case
+	// we should detach the USB device cleanly (if required) before reattaching it.
+	detachUsbDevice();
+
+	OutputDebugString("findDevice: SetupDiGetClassDevs: Initializing HID class devices...");
 	// We will try to get device information set for all USB devices that have a
 	// device interface and are currently present on the system (plugged in).
 	hDevInfo = SetupDiGetClassDevs(
@@ -700,7 +371,8 @@ void testFind2()
 		// set that we retrieved with SetupDiGetClassDevs(..)
 		DevIntfData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
 		dwMemberIdx = 0;
-		
+
+		OutputDebugString("findDevice: SetupDiEnumDeviceInfo: Enumerating devices...");
 		// Next, we will keep calling this SetupDiEnumDeviceInterfaces(..) until this
 		// function causes GetLastError() to return  ERROR_NO_MORE_ITEMS. With each
 		// call the dwMemberIdx value needs to be incremented to retrieve the next
@@ -724,7 +396,6 @@ void testFind2()
 			// a NULL DevIntfDetailData pointer, a DevIntfDetailDataSize
 			// of zero, and a valid RequiredSize variable. In response to such a call,
 			// this function returns the required buffer size at dwSize.
-
 			SetupDiGetDeviceInterfaceDetail(
 					hDevInfo, &DevIntfData, NULL, 0, &dwSize, NULL);
 
@@ -733,66 +404,79 @@ void testFind2()
 			DevIntfDetailData = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwSize);
 			DevIntfDetailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
 
+			OutputDebugString("findDevice: SetupDiGetDeviceInterfaceDetail: Getting device interface detail to open the read and write handles required for USB communication...");
+
 			if (SetupDiGetDeviceInterfaceDetail(hDevInfo, &DevIntfData,
 				DevIntfDetailData, dwSize, &dwSize, &DevData))
 			{
-				OutputDebugString("Searching for device");
-
 				// Finally we can start checking if we've found a useable device,
 				// by inspecting the DevIntfDetailData->DevicePath variable.
-				// The DevicePath looks something like this:
-				//
-				// \\?\usb#vid_04d8&pid_0033#5&19f2438f&0&2#{a5dcbf10-6530-11d2-901f-00c04fb951ed}
-				//
-				// The VID for Velleman Projects is always 10cf. The PID is variable
-				// for each device:
-				//
-				//    -------------------
-				//    | Device   | PID  |
-				//    -------------------
-				//    | K8090    | 8090 |
-				//    | VMB1USB  | 0b1b |
-				//    -------------------
-				//
-				// As you can see it contains the VID/PID for the device, so we can check
-				// for the right VID/PID with string handling routines.
+				if (NULL != _stricmp((TCHAR*)DevIntfDetailData->DevicePath, _T(DeviceIDToFind)))
+				{					
+					OutputDebugString("findDevice: Device path is below");
+					OutputDebugString(DevIntfDetailData->DevicePath);
 
-				if (NULL != _tcsstr((TCHAR*)DevIntfDetailData->DevicePath, _T("vid_045e&pid_003b")))
-				{
-					OutputDebugString("Found a device!");
-					// To find out the serial port for our K8090 device,
-					// we'll need to check the registry:
+					// Open the write handle
+					WriteHandle = CreateFile((DevIntfDetailData->DevicePath), 
+						GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
+					ErrorStatusWrite = GetLastError();
 
-					hKey = SetupDiOpenDevRegKey(
-								hDevInfo,
-								&DevData,
-								DICS_FLAG_GLOBAL,
-								0,
-								DIREG_DEV,
-								KEY_READ
-							);
+					// Open the read handle
+					ReadHandle = CreateFile((DevIntfDetailData->DevicePath),
+						GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
+					ErrorStatusRead = GetLastError();
 
-					dwType = REG_SZ;
-					dwSize = sizeof(lpData);
-					RegQueryValueEx(hKey, _T("PortName"), NULL, &dwType, lpData, &dwSize);
-					RegCloseKey(hKey);
+					// Open the feature handle
+					FeatureHandle = CreateFile((DevIntfDetailData->DevicePath),
+						GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
+					ErrorStatusFeature = GetLastError();
 
-					// Eureka!
-					OutputDebugString("Found a device on a port");
-					wprintf(_T("Found a device on port '%s'\n"), lpData);
+					// Check to see if we opened the read and write handles successfully
+					if((ErrorStatusWrite == ERROR_SUCCESS) && (ErrorStatusRead == ERROR_SUCCESS) && (ErrorStatusFeature == ERROR_SUCCESS))
+					{
+						OutputDebugString("findDevice: Success ! Device is now attached");
+
+						// File handles opened successfully, device is now attached
+						deviceAttached = TRUE;
+						deviceAttachedButBroken = FALSE;
+
+						// Start the device communication worker thread
+						usbWorkerThreadHandle = CreateThread(NULL, 0, &usbWorkerThread, 0, 0, NULL);	
+					}
+					else
+					{
+						OutputDebugString("findDevice: Failed ! Something went wrong... Can't use the device :(");
+
+						// Something went wrong... If we managed to open either handle close them
+						// and set deviceAttachedButBroken since we found the device but, for some
+						// reason, can't use it.
+						if(ErrorStatusWrite == ERROR_SUCCESS)
+							CloseHandle(WriteHandle);
+						if(ErrorStatusRead == ERROR_SUCCESS)
+							CloseHandle(ReadHandle);
+						if(ErrorStatusFeature == ERROR_SUCCESS)
+							CloseHandle(FeatureHandle);
+
+						deviceAttached = FALSE;
+						deviceAttachedButBroken = TRUE;
+					}
 				}
 			}
 
 			HeapFree(GetProcessHeap(), 0, DevIntfDetailData);
 
-			// Continue looping
+			if (deviceAttached || deviceAttachedButBroken)
+				break;
+
+			// Device not found, continue looping
 			SetupDiEnumDeviceInterfaces(
 				hDevInfo, NULL, &GUID_DEVINTERFACE_USB_DEVICE, ++dwMemberIdx, &DevIntfData);
 		}
 
 		SetupDiDestroyDeviceInfoList(hDevInfo);
 	}
-}*/
+} // END findDevice
+
 
 // This public method requests that device notification messages are sent to the calling form
 // which the form must catch with a WndProc override.
@@ -802,8 +486,7 @@ void testFind2()
 // in the form's contructor method:
 // 
 // a_usbHidCommunication.requestDeviceNotificationsToForm(this->Handle);
-// 
-
+//
 static void requestDeviceNotificationsToForm(HANDLE handleOfWindow)
 {
 	// Define the Globally Unique Identifier (GUID) for HID class devices:
@@ -818,7 +501,6 @@ static void requestDeviceNotificationsToForm(HANDLE handleOfWindow)
 	myDeviceBroadcastHeader.dbcc_classguid = InterfaceClassGuid;
 	RegisterDeviceNotification((HANDLE)handleOfWindow, &myDeviceBroadcastHeader, DEVICE_NOTIFY_WINDOW_HANDLE);
 }
-
 
 // This public method filters WndProc notification messages for the required
 // device notifications and triggers a re-detection of the USB device if required.
@@ -936,7 +618,7 @@ static BOOL waitForTheWorkerThreadToBeIdle(BOOL checkForTimeOut)
 } // END waitForTheWorkerThreadToBeIdle method
 
 // The following method forces a feature request to the USB device (the device must have been found first!)
-static BOOL forceFeature(int usbCommandId)
+static BOOL forceUsbFeature(int usbCommandId)
 {
 	// Variables for tracking how much is read and written
 	DWORD bytesRead = 0;				
@@ -950,7 +632,7 @@ static BOOL forceFeature(int usbCommandId)
 		return FALSE;
 	}
 
-	snprintf(strCommandId, 40, "forceFeature:command:%d", usbCommandId);
+	snprintf(strCommandId, 40, "forceUsbFeature:command:%d", usbCommandId);
 	OutputDebugString(strCommandId);					
 
 	// The first byte of the input and feature buffers should be set to zero (this is not
@@ -972,7 +654,7 @@ static BOOL forceFeature(int usbCommandId)
 	//}				
 
 	// Get the packet from the USB device
-	OutputDebugString("forceFeature: Set feature to the USB device");
+	OutputDebugString("forceUsbFeature: Set feature to the USB device");
 	if (HidD_SetFeature(FeatureHandle, unmanagedFeatureBuffer, 65))
 	{
 		// We need to read the return from the device
@@ -988,9 +670,51 @@ static BOOL forceFeature(int usbCommandId)
 		return TRUE;
 	}
 	else
-		OutputDebugString("forceFeature: /!\\ Failed to set feature to the USB device");
+		OutputDebugString("forceUsbFeature: /!\\ Failed to set feature to the USB device");
 
 	return FALSE;
+}
+
+// The following method gets a feature request from the USB device (the device must have been found first!)
+static byte getUsbFeature()
+{
+	// Variables for tracking how much is read and written
+	DWORD bytesRead = 0;				
+	unsigned char * unmanagedFeatureBuffer = &featureBuffer[0];				
+	char strCommandId[40];
+
+	// Check to see if the device is already found
+	if (deviceAttached == FALSE)
+	{
+		// There is no device to communicate with... Exit with error status
+		return NULL;
+	}
+
+	snprintf(strCommandId, 40, "getUsbFeature");		
+
+	// The first byte of the input and feature buffers should be set to zero (this is not
+	// sent to the USB device)
+	featureBuffer[0] = 0;
+
+	// DEBUG
+	//OutputDebugString("usbWorkerThread: FeatureBuffer below");
+	//for (loopCounter = 0; loopCounter < 65; loopCounter++) 
+	//{
+	//snprintf(debugOutput, 20, "%d", featureBuffer[loopCounter]);
+	//OutputDebugString(debugOutput);
+	//}				
+
+	// Get the packet from the USB device
+	OutputDebugString("getUsbFeature: Get feature to the USB device");
+	if (HidD_GetFeature(FeatureHandle, unmanagedFeatureBuffer, 65))
+	{
+		// Return with success
+		return featureBuffer[1];
+	}
+	else
+		OutputDebugString("getUsbFeature: /!\\ Failed to get feature to the USB device");
+
+	return NULL;
 }
 
 // The following method sends a feature request to the USB device (the device must have been found first!)
@@ -1231,7 +955,8 @@ UsbHidCommunication CreateUsbHidCommunicator()
 	communicator.detachUsbDevice = detachUsbDevice;
 	communicator.finalizeUsbHidCommunication = finalizeUsbHidCommunication;
 	communicator.findDevice = findDevice;
-	communicator.forceFeature = forceFeature;
+	communicator.forceUsbFeature = forceUsbFeature;
+	communicator.getUsbFeature = getUsbFeature;
 	communicator.handleDeviceChangeMessages = handleDeviceChangeMessages;
 	communicator.initUsbHidCommunication = initUsbHidCommunication;
 	communicator.isDeviceAttached = isDeviceAttached;

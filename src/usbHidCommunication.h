@@ -132,7 +132,10 @@ BOOL (*isDeviceBroken)(void);
 //BOOL (*waitForTheWorkerThreadToBeIdle)(BOOL checkForTimeOut);
 
 // The following method forces a feature request to the USB device (the device must have been found first!)
-BOOL (*forceFeature)(int usbCommandId);
+BOOL (*forceUsbFeature)(int usbCommandId);
+
+// The following method gets a feature request from the USB device (the device must have been found first!)
+byte (*getUsbFeature)();
 
 // The following method sends a feature request to the USB device (the device must have been found first!)
 BOOL (*sendUsbFeature)(int usbCommandId);
@@ -179,6 +182,5 @@ UsbHidCommunication CreateUsbHidCommunicator();
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif

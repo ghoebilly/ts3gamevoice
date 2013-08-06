@@ -39,14 +39,14 @@
 #include "ts3_functions.h"
 #include "ts3_helpers.h"
 #include "plugin.h"
-#include "usbHidCommunication.h"
+#include "gamevoice_functions.h"
 
 #include <TlHelp32.h>
 #include <devguid.h>
 #include <regstr.h>
 
 static struct TS3Functions ts3Functions;
-static struct UsbHidCommunication usbHidCommunication;
+static struct GameVoiceFunctions gameVoiceFunctions;
 
 #ifdef _WIN32
 #define _strcpy(dest, destSize, src) strcpy_s(dest, destSize, src)
@@ -67,7 +67,7 @@ static struct UsbHidCommunication usbHidCommunication;
 
 static char* pluginID = NULL;
 
-static HANDLE hPluginThread = NULL;
+static HANDLE hGameVoiceThread = NULL;
 static BOOL pluginRunning = FALSE;
 static uint64 scHandlerID = 0;
 static byte previousInputValue = 0;
@@ -96,94 +96,77 @@ BOOL isNewInput(byte inputValue, int buttonId)
 	return !(previousInputValue & buttonId) && (inputValue & buttonId);
 }
 
-// Blink GameVoice button ;)
-void RollupLeds()
+void OpenWeb(LPCSTR url)
 {
-	usbHidCommunication.sendUsbFeature(4);
-	Sleep(75);
-	usbHidCommunication.sendUsbFeature(8);
-	Sleep(75);
-	usbHidCommunication.sendUsbFeature(16);
-	Sleep(75);
-	usbHidCommunication.sendUsbFeature(32);
-	Sleep(75);
-	usbHidCommunication.sendUsbFeature(2);
-	Sleep(75);
-	usbHidCommunication.sendUsbFeature(1);
-	Sleep(75);
-	usbHidCommunication.sendUsbFeature(0);
-	usbHidCommunication.sendUsbFeature(64);
-	Sleep(75);
-	usbHidCommunication.sendUsbFeature(0);
+	ShellExecute(NULL,"open", url,NULL,NULL,SW_SHOWDEFAULT);
 }
 
-void ResetDevice()
-{
-	previousInputValue = 0;
-	usbHidCommunication.forceFeature(0);
-	usbHidCommunication.forceFeature(0);
-}
-
-void OpenWeb()
-{
-	ShellExecute(NULL,"open","http://sourceforge.net/projects/ts3gamevoice/",NULL,NULL,SW_SHOWDEFAULT);
-}
-
-// PluginThread, we listen for the usb device here
-DWORD WINAPI PluginThread(LPVOID pData)
+// GameVoiceThread, we listen for the game voice device here
+DWORD WINAPI GameVoiceThread(LPVOID pData)
 {
 	byte inputValue;
 	byte featureValue;
 	char debugOutput[40];
 
-	ts3Functions.logMessage("Plugin thread attached...", LogLevel_INFO, "GameVoice Plugin", 0);
-	RollupLeds();
+	ts3Functions.logMessage("Game Voice thread attached...", LogLevel_INFO, "GameVoice Plugin", 0);	
+	gameVoiceFunctions.runDeviceLedChase();
 
 	// While the plugin is running
 	while(pluginRunning)
 	{
 		ts3Functions.logMessage("Waiting for packets from the USB device...", LogLevel_DEBUG, "GameVoice Plugin", 0);
-		if (usbHidCommunication.receiveUsbCommand())
+		if (gameVoiceFunctions.waitForExternalCommand())
 		{
-			inputValue = usbHidCommunication.readFromTheInputBuffer(1);
+			inputValue = gameVoiceFunctions.readCommand();
 			snprintf(debugOutput, 40, "readFromTheInputBuffer:%d", inputValue);
 			OutputDebugString(debugOutput);
 			ts3Functions.logMessage(debugOutput, LogLevel_DEBUG, "GameVoice Plugin", 0);
 			
-			snprintf(debugOutput, 40, "previousInputValue:%d", previousInputValue);
+			snprintf(debugOutput, 40, "lastFeatureSent:%d", gameVoiceFunctions.getLastFeatureSent());
 			OutputDebugString(debugOutput);
+			snprintf(debugOutput, 40, "lastCommandReceived:%d", gameVoiceFunctions.getLastCommandReceived());
+			OutputDebugString(debugOutput);
+			snprintf(debugOutput, 40, "previousCommandReceived:%d", gameVoiceFunctions.getPreviousCommandReceived());
+			OutputDebugString(debugOutput);
+			//snprintf(debugOutput, 40, "previousInputValue:%d", previousInputValue);
+			//OutputDebugString(debugOutput);
+			//snprintf(debugOutput, 40, "previousState:%d", gameVoiceFunctions.getPreviousState());
+			//OutputDebugString(debugOutput);
 
 			//  Ignores impossible action
 			if (inputValue == 63 || inputValue >= 205)
 				continue;
 
 			// Ignore feature commands
-			featureValue = usbHidCommunication.readFromTheFeatureBuffer(1);
+			featureValue = gameVoiceFunctions.getLastFeatureSent();
 			snprintf(debugOutput, 40, "featureValue:%d", featureValue);
 			OutputDebugString(debugOutput);
-			usbHidCommunication.writeToTheFeatureBuffer(1,0xFF);
-			if (inputValue == featureValue)
-				continue;
+			//gameVoiceFunctions.writeToTheFeatureBuffer(1,0xFF);
+			/*if (inputValue == featureValue)
+				continue;*/
 
-			// Microphone button (128)
-			if (isNewInput(inputValue, 128))
+			// Microphone button
+			if (gameVoiceFunctions.isButtonActive(MUTE))
 				setInputMute(scHandlerID, TRUE);	// off
 			else
 			{
 				setInputMute(scHandlerID, FALSE); // on
 
-				// Sound button (64)
-				if (inputValue == 64)
+				// Sound button
+				if (gameVoiceFunctions.isButtonActive(COMMAND))
 					setOutputMute(scHandlerID, TRUE); // on
 				else
 				{
-					setOutputMute(scHandlerID, FALSE); // off
+					setOutputMute(scHandlerID, FALSE); // off					
 
-					// Team button (2)
-					if (isNewInput(inputValue, 2))
+					if (gameVoiceFunctions.isButtonDeactivated(COMMAND))
+						continue;
+
+					// Team button
+					if (gameVoiceFunctions.isButtonActivated(TEAM))
 						connectToBookmark("TEAM", PLUGIN_CONNECT_TAB_CURRENT, &scHandlerID);
-					// All button (1)
-					if (isNewInput(inputValue, 1))
+					// All button
+					if (gameVoiceFunctions.isButtonActivated(ALL))
 						connectToBookmark("ALL", PLUGIN_CONNECT_TAB_CURRENT, &scHandlerID);
 
 					previousInputValue = inputValue;					
@@ -249,13 +232,12 @@ const char* ts3plugin_name() {
 	}
 	return result;
 #else
-	return "GameVoice Plugin";
 #endif
 }
 
 /* Plugin version */
 const char* ts3plugin_version() {
-    return "0.9";
+    return "1.0b";
 }
 
 /* Plugin API version. Must be the same as the clients API major version, else the plugin fails to load. */
@@ -272,7 +254,7 @@ const char* ts3plugin_author() {
 /* Plugin description */
 const char* ts3plugin_description() {
 	/* If you want to use wchar_t, see ts3plugin_name() on how to use */
-    return "This plugin allows you to use the Microsoft Sidewinder Game Voice USB device to control TeamSpeak 3.\n\n";
+    return "This plugin allows you to use the Microsoft Sidewinder Game Voice USB device to control TeamSpeak 3.\n\nIf the plugin failed to initialize (red), it may be because the Game Voice hardware cannot be found on the system.\nCheck logs in Tools\\Client Log or Ctrl+L.";
 }
 
 /* Set TeamSpeak 3 callback functions */
@@ -296,19 +278,15 @@ int ts3plugin_init() {
 
 	ts3Functions.logMessage("Plugin started...", LogLevel_INFO, "GameVoice Plugin", 0);
 
+	gameVoiceFunctions = InitGameVoiceFunctions();
+
 	ts3Functions.logMessage("Searching for SideWinder Game Voice device (VID_045E&PID_003B).", LogLevel_INFO, "GameVoice Plugin", 0);
-	
-	usbHidCommunication = CreateUsbHidCommunicator();
 
-	usbHidCommunication.initUsbHidCommunication();
-	usbHidCommunication.findDevice(0x045E, 0x003B);
-	//testFind2();
-
-	if (usbHidCommunication.isDeviceAttached())
+	if (gameVoiceFunctions.loadDevice())
 		ts3Functions.logMessage("Device found and attached!", LogLevel_INFO, "GameVoice Plugin", 0);
 	else
 	{
-		ts3Functions.logMessage("Cannot find GameVoice USB device.", LogLevel_INFO, "GameVoice Plugin", 0);
+		ts3Functions.logMessage("Cannot find GameVoice USB device, plugin unloaded.", LogLevel_INFO, "GameVoice Plugin", 0);
 		return 1;
 		// TODO: Check if we don't have to return -2 instead
 	}
@@ -321,12 +299,12 @@ int ts3plugin_init() {
 
 	// Start the plugin thread
 	pluginRunning = TRUE;
-	hPluginThread = CreateThread(NULL, 0, PluginThread, 0, 0, NULL);	
+	hGameVoiceThread = CreateThread(NULL, 0, GameVoiceThread, 0, 0, NULL);	
 
-	if(hPluginThread==NULL)
+	if(hGameVoiceThread==NULL)
 	{
 		pluginRunning = FALSE;
-		ts3Functions.logMessage("Failed to start plugin thread, unloading plugin.", LogLevel_ERROR, "GameVoice Plugin", 0);
+		ts3Functions.logMessage("Failed to start game voice thread, plugin unloaded.", LogLevel_ERROR, "GameVoice Plugin", 0);
 		return 1;
 	}
 
@@ -354,16 +332,14 @@ void ts3plugin_shutdown() {
 	 * TeamSpeak client will most likely crash (DLL removed but dialog from DLL code still open).
 	 */
 
-	ResetDevice();
-
-	usbHidCommunication.finalizeUsbHidCommunication();
+	gameVoiceFunctions.unloadDevice();
 
 	pluginRunning = FALSE;
 
 	// Abort the notifier thread
 	//TerminateThread(NotifierThread, 0);
-	WaitForSingleObject(hPluginThread, 5000);
-	CloseHandle(hPluginThread);
+	WaitForSingleObject(hGameVoiceThread, 5000);
+	CloseHandle(hGameVoiceThread);
 
 	/* Free pluginID if we registered it */
 	if(pluginID) {
@@ -774,7 +750,7 @@ void ts3plugin_initMenus(struct PluginMenuItem*** menuItems, char** menuIcon) {
 	 * e.g. for "test_plugin.dll", icon "1.png" is loaded from <TeamSpeak 3 Client install dir>\plugins\test_plugin\1.png
 	 */
 
-	BEGIN_CREATE_MENUS(1);  /* IMPORTANT: Number of menu items must be correct! */
+	BEGIN_CREATE_MENUS(2);  /* IMPORTANT: Number of menu items must be correct! */
 	//CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_CLIENT,  MENU_ID_CLIENT_1,  "not used 1",  "1.png");
 	//CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_CLIENT,  MENU_ID_CLIENT_2,  "not used 2",  "2.png");
 	//CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_CHANNEL, MENU_ID_CHANNEL_1, "Add channel to whisper list", "1.png");
@@ -782,6 +758,7 @@ void ts3plugin_initMenus(struct PluginMenuItem*** menuItems, char** menuIcon) {
 	//CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_CHANNEL, MENU_ID_CHANNEL_3, "Set channel 3", "3.png");
 	//CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_CHANNEL, MENU_ID_CHANNEL_4, "Set channel 4", "4.png");
 	CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_GLOBAL,  MENU_ID_GLOBAL_1,  "Visit Web Site",  "sf.png");
+	CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_GLOBAL,  MENU_ID_GLOBAL_2,  "Get Support",  "supp.png");
 	//CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_GLOBAL,  MENU_ID_GLOBAL_2,  "About",  "gv.png");
 	END_CREATE_MENUS;  /* Includes an assert checking if the number of menu items matched */
 
@@ -1340,10 +1317,11 @@ void ts3plugin_onMenuItemEvent(uint64 serverConnectionHandlerID, enum PluginMenu
 					/* Menu global 1 was triggered */
 					// ts3Functions.setPluginMenuEnabled(pluginID, menuItemID, 1);					
 					//SetWhisperList(scHandlerID, NULL);
-					OpenWeb();
+					OpenWeb("http://sourceforge.net/projects/ts3gamevoice/");
 					break;
 				case MENU_ID_GLOBAL_2:
 					/* Menu global 2 was triggered */	
+					OpenWeb("https://sourceforge.net/p/ts3gamevoice/discussion/");
 					break;
 				default:
 					break;

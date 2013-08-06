@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectName>gamevoice</ProjectName>
     <ProjectGuid>{5EB079AF-C975-40EA-A34F-F631CD6069F2}</ProjectGuid>
-    <RootNamespace>gkey</RootNamespace>
+    <RootNamespace>gamevoice</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <SccProjectName>
     </SccProjectName>
@@ -100,11 +100,15 @@
     <ExecutablePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\NETFX 4.0 Tools;C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin;C:\Program Files\Microsoft SDKs\Windows\v7.1;$(ExecutablePath)</ExecutablePath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\WinDDK\7600.16385.1\inc\ddk;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;C:\WinDDK\7600.16385.1\inc\api;C:\Program Files\Microsoft SDKs\Windows\v7.1\Include;$(IncludePath)</IncludePath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files\Microsoft SDKs\Windows\v7.1\Lib\x64;C:\WinDDK\7600.16385.1\lib\win7\amd64;$(LibraryPath)</LibraryPath>
-    <ExcludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ExcludePath)</ExcludePath>
     <ExecutablePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\NETFX 4.0 Tools;C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin;C:\Program Files\Microsoft SDKs\Windows\v7.1;$(ExecutablePath)</ExecutablePath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\WinDDK\7600.16385.1\inc\ddk;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;C:\WinDDK\7600.16385.1\inc\api;C:\Program Files\Microsoft SDKs\Windows\v7.1\Include;$(IncludePath)</IncludePath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\Microsoft SDKs\Windows\v7.1\Lib\x64;C:\WinDDK\7600.16385.1\lib\win7\amd64;$(LibraryPath)</LibraryPath>
-    <ExcludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ExcludePath)</ExcludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Program Files\Microsoft SDKs\Windows\v7.1\Lib;C:\WinDDK\7600.16385.1\lib\win7\i386;$(LibraryPath)</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\WinDDK\7600.16385.1\inc\ddk;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;C:\WinDDK\7600.16385.1\inc\api;C:\Program Files\Microsoft SDKs\Windows\v7.1\Include;$(IncludePath)</IncludePath>
+    <ExecutablePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\NETFX 4.0 Tools;C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin;C:\Program Files\Microsoft SDKs\Windows\v7.1;$(ExecutablePath)</ExecutablePath>
+    <ExecutablePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\NETFX 4.0 Tools;C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin;C:\Program Files\Microsoft SDKs\Windows\v7.1;$(ExecutablePath)</ExecutablePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:\WinDDK\7600.16385.1\inc\ddk;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;C:\WinDDK\7600.16385.1\inc\api;C:\Program Files\Microsoft SDKs\Windows\v7.1\Include;$(IncludePath)</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:\Program Files\Microsoft SDKs\Windows\v7.1\Lib;C:\WinDDK\7600.16385.1\lib\win7\i386;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -113,7 +117,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;TEST_PLUGIN_EXPORTS;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
@@ -126,7 +130,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalDependencies>setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>setupapi.lib;hid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>COPY /Y "$(TargetPath)" "C:\Program Files (x86)\TeamSpeak 3 Client\plugins\"</Command>
@@ -138,7 +142,7 @@
       <AdditionalIncludeDirectories>include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;TEST_PLUGIN_EXPORTS;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
@@ -160,12 +164,14 @@
     <ClCompile>
       <AdditionalIncludeDirectories>include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;TEST_PLUGIN_EXPORTS;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>
       </DebugInformationFormat>
+      <OmitFramePointers>
+      </OmitFramePointers>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -176,7 +182,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalDependencies>setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>setupapi.lib;hid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>COPY /Y "$(TargetPath)" "C:\Program Files (x86)\TeamSpeak 3 Client\plugins\"</Command>
@@ -186,7 +192,7 @@
     <ClCompile>
       <AdditionalIncludeDirectories>include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;TEST_PLUGIN_EXPORTS;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
@@ -217,13 +223,18 @@
     <ClInclude Include="include\public_rare_definitions.h" />
     <ClInclude Include="include\ts3_functions.h" />
     <ClInclude Include="src\stdafx.h" />
-    <ClInclude Include="src\ts3_helpers.h" />    
+    <ClInclude Include="src\ts3_helpers.h" />
     <ClInclude Include="src\usbHidCommunication.h" />
     <ClInclude Include="src\plugin.h" />
-    <ClInclude Include="src\gamevoice_helpers.h" />
+    <ClInclude Include="src\gamevoice_functions.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="COPYING.txt" />
+    <None Include="COPYING.txt">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="gamevoice.txt">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="icons\1.png">
       <FileType>Document</FileType>
       <DeploymentContent>true</DeploymentContent>
@@ -244,10 +255,15 @@
     <None Include="icons\sf.png">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="package.ini" />
+    <None Include="icons\supp.png">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="package.ini">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\gamevoice_helpers.c" />
+    <ClCompile Include="src\gamevoice_functions.c" />
     <ClCompile Include="src\plugin.c" />
     <ClCompile Include="src\usbHidCommunication.c" />
   </ItemGroup>

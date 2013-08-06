@@ -1,0 +1,23 @@
+===============================================================================
+		   TeamSpeak 3 SideWinder Game Voice Plugin
+                       Copyright 2012-2013 JoeBilly
+		 https://sourceforge.net/projects/ts3gamevoice/
+			joebilly@users.sourceforge.net
+===============================================================================
+   + Added feature or noticeable improvement
+   - Bug fix or something removed
+   * Changed or Information
+   ! Important - Take note!
+===============================================================================
+
+=== Beta 1.0b 04 Aug 2013
++ Ensure plugin compatibility on win32 & win64 platforms
+
+=== Alpha 0.10a 20 Jun 2013
+- Plugin failed to load if Microsoft Visual C++ Redistributable was missing
+
+=== Alpha 0.9a 17 Apr 2013
++ TS microphone mute via mute toggle button
++ TS sound mute via the command button
++ Join a server in bookmark via the ALL and TEAM buttons
+  * Just name your bookmark ALL and TEAM

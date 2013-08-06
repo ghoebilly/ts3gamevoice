@@ -2,8 +2,8 @@
  * Copyright (c) 2012-2013 JoeBilly
  * Copyright (C) 2010 Simon Inns
  * 
- * GameVoice Plugin 
- * usbHidCommunication.c
+ * Standard system include file
+ * stdafx.h
  * JoeBilly (joebilly@users.sourceforge.net)
  * https://sourceforge.net/projects/ts3gamevoice/
  *
@@ -29,14 +29,12 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// stdafx.h : include file for standard system include files,
-// or project specific include files that are used frequently, but
-// are changed infrequently
 #pragma once
 
 #ifdef _WIN32
 //#pragma warning(disable : 4996)  /* Disable unsafe localtime warning */
 #include <Windows.h>	// We require the datatypes from this header
+#include <stdio.h>
 #define snprintf sprintf_s
 #endif
 #include <string.h>
