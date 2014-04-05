@@ -70,22 +70,12 @@ void (*initUsbHidCommunication)();
 
 // Destructor method
 void (*finalizeUsbHidCommunication)();
-
-// This method is run as a background thread which reads
-// information from the USB device.  It is encapsulated in a worker
-// thread since the ReadFile() or WriteFile() commands could block if the USB
-// device is detached at an unfortunate point, or (more importantly
-// if the firmware of the device does not send a response when one
-// is expected (due to a software or firmware bug) - which would otherwise
-// lock-up the application...
-//DWORD (*usbWorkerThread)(LPVOID pData);
 	
 // This method attempts to find the target USB device and discover the device's path
 //
 // Note: A limitation of this routine is that it cannot deal with two or more devices
 //       connected to the host that have the same VID and PID, it will simply pick
 //       the first one it finds...
-// Dont work on win32 but work on win64
 void (*findDevice)(int usbVid, int usbPid);
 			
 // This public method requests that device notification messages are sent to the calling form
@@ -126,10 +116,6 @@ BOOL (*isDeviceAttached)(void);
 
 // Define public method for reading the deviceAttachedButBroken flag
 BOOL (*isDeviceBroken)(void);
-
-// The following private method waits for the worker thread to become
-// idle before returning.
-//BOOL (*waitForTheWorkerThreadToBeIdle)(BOOL checkForTimeOut);
 
 // The following method forces a feature request to the USB device (the device must have been found first!)
 BOOL (*forceUsbFeature)(int usbCommandId);

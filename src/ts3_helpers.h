@@ -110,7 +110,6 @@ BOOL connectToBookmark(char* label, PluginConnectTab connectTab, uint64* scHandl
 	return ret;
 }
 
-
 BOOL setAway(uint64 scHandlerID, BOOL isAway, char* msg)
 {
 	char message[20];
@@ -152,8 +151,6 @@ BOOL setGlobalAway(BOOL isAway, char* msg)
 	ts3Functions.freeMemory(servers);
 	return TRUE;
 }
-
-
 
 BOOL setInputMute(uint64 scHandlerID, BOOL shouldMute)
 {

@@ -56,7 +56,7 @@ static struct GameVoiceFunctions gameVoiceFunctions;
 #define _strcpy(dest, destSize, src) { strncpy(dest, src, destSize-1); (dest)[destSize-1] = '\0'; }
 #endif
 
-#define PLUGIN_API_VERSION 19
+#define PLUGIN_API_VERSION 20
 
 #define PATH_BUFSIZE 512
 #define COMMAND_BUFSIZE 128
@@ -98,6 +98,9 @@ BOOL isNewInput(byte inputValue, int buttonId)
 
 void OpenWeb(LPCSTR url)
 {
+	//char command[150];
+	//snprintf(command, 150, "start %s", url);
+	//system(command);
 	ShellExecute(NULL,"open", url,NULL,NULL,SW_SHOWDEFAULT);
 }
 
@@ -106,32 +109,32 @@ DWORD WINAPI GameVoiceThread(LPVOID pData)
 {
 	byte inputValue;
 	byte featureValue;
-	char debugOutput[40];
+	char debugOutput[50];
 
-	ts3Functions.logMessage("Game Voice thread attached...", LogLevel_INFO, "GameVoice Plugin", 0);	
+	ts3Functions.logMessage("Game Voice thread attached...", LogLevel_DEBUG, "GameVoice Plugin", 0);	
 	gameVoiceFunctions.runDeviceLedChase();
 
+
+	ts3Functions.logMessage("Waiting for packets from the USB device...", LogLevel_DEBUG, "GameVoice Plugin", 0);
 	// While the plugin is running
 	while(pluginRunning)
 	{
-		ts3Functions.logMessage("Waiting for packets from the USB device...", LogLevel_DEBUG, "GameVoice Plugin", 0);
 		if (gameVoiceFunctions.waitForExternalCommand())
 		{
 			inputValue = gameVoiceFunctions.readCommand();
-			snprintf(debugOutput, 40, "readFromTheInputBuffer:%d", inputValue);
+			snprintf(debugOutput, 50, "GameVoiceThread:readFromTheInputBuffer:%d", inputValue);
 			OutputDebugString(debugOutput);
 			ts3Functions.logMessage(debugOutput, LogLevel_DEBUG, "GameVoice Plugin", 0);
 			
-			snprintf(debugOutput, 40, "lastFeatureSent:%d", gameVoiceFunctions.getLastFeatureSent());
+			snprintf(debugOutput, 50, "GameVoiceThread:lastFeatureSent:%d", gameVoiceFunctions.getLastFeatureSent());
 			OutputDebugString(debugOutput);
-			snprintf(debugOutput, 40, "lastCommandReceived:%d", gameVoiceFunctions.getLastCommandReceived());
+			snprintf(debugOutput, 50, "GameVoiceThread:lastCommandReceived:%d", gameVoiceFunctions.getLastCommandReceived());
 			OutputDebugString(debugOutput);
-			snprintf(debugOutput, 40, "previousCommandReceived:%d", gameVoiceFunctions.getPreviousCommandReceived());
+			snprintf(debugOutput, 50, "GameVoiceThread:previousCommandReceived:%d", gameVoiceFunctions.getPreviousCommandReceived());
 			OutputDebugString(debugOutput);
 			//snprintf(debugOutput, 40, "previousInputValue:%d", previousInputValue);
 			//OutputDebugString(debugOutput);
 			//snprintf(debugOutput, 40, "previousState:%d", gameVoiceFunctions.getPreviousState());
-			//OutputDebugString(debugOutput);
 
 			//  Ignores impossible action
 			if (inputValue == 63 || inputValue >= 205)
@@ -139,7 +142,7 @@ DWORD WINAPI GameVoiceThread(LPVOID pData)
 
 			// Ignore feature commands
 			featureValue = gameVoiceFunctions.getLastFeatureSent();
-			snprintf(debugOutput, 40, "featureValue:%d", featureValue);
+			snprintf(debugOutput, 50, "GameVoiceThread:featureValue:%d", featureValue);
 			OutputDebugString(debugOutput);
 			//gameVoiceFunctions.writeToTheFeatureBuffer(1,0xFF);
 			/*if (inputValue == featureValue)
@@ -237,7 +240,7 @@ const char* ts3plugin_name() {
 
 /* Plugin version */
 const char* ts3plugin_version() {
-    return "1.0b";
+    return "1.1b";
 }
 
 /* Plugin API version. Must be the same as the clients API major version, else the plugin fails to load. */
@@ -1137,6 +1140,17 @@ int ts3plugin_onClientPokeEvent(uint64 serverConnectionHandlerID, anyID fromClie
 }
 
 void ts3plugin_onClientSelfVariableUpdateEvent(uint64 serverConnectionHandlerID, int flag, const char* oldValue, const char* newValue) {
+	/*if (flag == CLIENT_OUTPUT_MUTED) 	
+	{
+		if (atoi(newValue) == INPUT_ACTIVE)
+		{
+			gameVoiceFunctions.deactivateButton(COMMAND);
+		}
+		else
+		{
+			gameVoiceFunctions.activateButton(COMMAND);
+		}
+	}*/
 }
 
 void ts3plugin_onFileListEvent(uint64 serverConnectionHandlerID, uint64 channelID, const char* path, const char* name, uint64 size, uint64 datetime, int type, uint64 incompletesize, const char* returnCode) {
@@ -1374,4 +1388,7 @@ void ts3plugin_onHotkeyEvent(const char* keyword) {
 
 /* Called when recording a hotkey has finished after calling ts3Functions.requestHotkeyInputDialog */
 void ts3plugin_onHotkeyRecordedEvent(const char* keyword, const char* key) {
+}
+/* Called when client custom nickname changed */
+void ts3plugin_onClientDisplayNameChanged(uint64 serverConnectionHandlerID, anyID clientID, const char* displayName, const char* uniqueClientIdentifier) {
 }

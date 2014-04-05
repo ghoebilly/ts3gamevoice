@@ -172,7 +172,7 @@ static DWORD WINAPI usbWorkerThread(LPVOID pData)
 			unsigned char * unmanagedInputBuffer = &inputBuffer[0];
 
 			// Get the packet from the USB device
-			OutputDebugString("usbWorkerThread: Get the packet from the USB device");
+			OutputDebugString("usbWorkerThread:read: Get the packet from the USB device");
 			ReadFile(ReadHandle, unmanagedInputBuffer, 65, &bytesRead, 0);
 			//OutputDebugString("Read in input buffer");
 			//_snprintf(debugOutput, 20, "%d", bytesRead);
@@ -198,7 +198,7 @@ static DWORD WINAPI usbWorkerThread(LPVOID pData)
 
 			// Send the packet to the USB device and then perform a read
 			// from the device (if the write was successful)
-			OutputDebugString("usbWorkerThread: Send the packet to the USB device and try to perform a read");
+			OutputDebugString("usbWorkerThread:writeRead: Send the packet to the USB device and try to perform a read");
 			if (WriteFile(WriteHandle, unmanagedOutputBuffer, 65, &bytesWritten, 0))
 			{
 				// Map the managed data array from the class to an unmanaged
@@ -230,7 +230,7 @@ static DWORD WINAPI usbWorkerThread(LPVOID pData)
 			//}
 
 			// Get the packet from the USB device
-			OutputDebugString("usbWorkerThread: Set feature to the USB device");
+			OutputDebugString("usbWorkerThread:setFeature: Set feature to the USB device");
 			if (HidD_SetFeature(WriteHandle, unmanagedFeatureBuffer, 65))
 			{
 				// We need to read the return from the device
@@ -240,8 +240,7 @@ static DWORD WINAPI usbWorkerThread(LPVOID pData)
 				unsigned char * unmanagedInputBuffer = &inputBuffer[0];
 
 				// Get the packet from the USB device
-				ReadFile(ReadHandle, unmanagedInputBuffer, 65, &bytesRead, 0);
-							
+				ReadFile(ReadHandle, unmanagedInputBuffer, 65, &bytesRead, 0);							
 			}
 			else
 				OutputDebugString("usbWorkerThread: /!\\ Failed to set feature to the USB device");																		
@@ -277,7 +276,7 @@ static DWORD WINAPI usbWorkerThread(LPVOID pData)
 			//}
 
 			// Send the packet to the USB device
-			OutputDebugString("usbWorkerThread: Send the packet to the USB device");
+			OutputDebugString("usbWorkerThread:write: Send the packet to the USB device");
 			if (!WriteFile(WriteHandle, unmanagedOutputBuffer, 65, &bytesWritten, 0))
 			{
 				OutputDebugString("usbWorkerThread: /!\\ Failed to send the packet to the USB device");
@@ -587,7 +586,7 @@ static BOOL waitForTheWorkerThreadToBeIdle(BOOL checkForTimeOut)
 {
 	int timeOutCounter = 0;
 
-	// Note: This is probably not ideal since it blocks the form application
+	// Note: This is probably not ideal since it blocks the thread
 	//		 while it waits, but the USB communication is synchronous i.e.
 	//		 it matters what order the commands are sent and receieved...
 	while (workerThreadState != idle && workerThreadState != terminated &&
@@ -690,7 +689,7 @@ static byte getUsbFeature()
 		return NULL;
 	}
 
-	snprintf(strCommandId, 40, "getUsbFeature");		
+	//snprintf(strCommandId, 40, "getUsbFeature");		
 
 	// The first byte of the input and feature buffers should be set to zero (this is not
 	// sent to the USB device)
@@ -705,9 +704,12 @@ static byte getUsbFeature()
 	//}				
 
 	// Get the packet from the USB device
-	OutputDebugString("getUsbFeature: Get feature to the USB device");
+	OutputDebugString("getUsbFeature: Get feature from the USB device");
 	if (HidD_GetFeature(FeatureHandle, unmanagedFeatureBuffer, 65))
 	{
+		snprintf(strCommandId, 40, "getUsbFeature:%d", featureBuffer[1]);
+		OutputDebugString(strCommandId);
+
 		// Return with success
 		return featureBuffer[1];
 	}
@@ -736,7 +738,7 @@ static BOOL sendUsbFeature(int usbCommandId)
 	{
 		snprintf(strCommandId, 40, "sendUsbFeature:command:%d", usbCommandId);
 		OutputDebugString("sendUsbFeature: Worker thread is idle, setting command ID and state to SetFeature...");
-		OutputDebugString(strCommandId);					
+		OutputDebugString(strCommandId);
 
 		// The first byte of the input and feature buffers should be set to zero (this is not
 		// sent to the USB device)
@@ -899,9 +901,13 @@ static byte readFromTheInputBuffer(int byteNumber)
 	// Do not allow reading from bytes beyond the array size, just return zero
 	if (byteNumber > 64) return -1;
 
+	//OutputDebugString("readFromTheInputBuffer in");
+
 	// Ensure that the worker thread has finished reading before
 	// grabbing the data from the input buffer.
 	waitForTheWorkerThreadToBeIdle(FALSE);
+
+	//OutputDebugString("readFromTheInputBuffer out");
 
 	return inputBuffer[byteNumber];
 } // END readFromTheInputBuffer method
@@ -918,9 +924,13 @@ static byte readFromTheFeatureBuffer(int byteNumber)
 	// Do not allow reading from bytes beyond the array size, just return zero
 	if (byteNumber > 64) return -1;
 
+	//OutputDebugString("readFromTheFeatureBuffer in");
+
 	// Ensure that the worker thread has finished reading before
 	// grabbing the data from the input buffer.
 	waitForTheWorkerThreadToBeIdle(FALSE);
+
+	//OutputDebugString("readFromTheFeatureBuffer out");
 
 	return featureBuffer[byteNumber];
 } // END readFromTheFeatureBuffer method
@@ -968,8 +978,6 @@ UsbHidCommunication CreateUsbHidCommunicator()
 	communicator.sendUsbCommandWriteOnly = sendUsbCommandWriteOnly;
 	communicator.sendUsbCommandWriteRead = sendUsbCommandWriteRead;
 	communicator.sendUsbFeature = sendUsbFeature;
-	//communicator.usbWorkerThread = usbWorkerThread;
-	//communicator.waitForTheWorkerThreadToBeIdle = waitForTheWorkerThreadToBeIdle;
 	communicator.writeToTheFeatureBuffer = writeToTheFeatureBuffer;
 	communicator.writeToTheOutputBuffer = writeToTheOutputBuffer;
 
