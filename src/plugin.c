@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 JoeBilly 
+ * Copyright (c) 2012-2014 JoeBilly 
  * Copyright (c) 2008-2013 TeamSpeak Systems GmbH
  *
  * TeamSpeak 3 SideWinder Game Voice Plugin

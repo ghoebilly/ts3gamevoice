@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2012-2013 JoeBilly 
+ * Copyright (c) 2012-2014 JoeBilly 
  *
  * Game Voice helper functions header
  * gamevoice_helpers.h

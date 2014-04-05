@@ -1,6 +1,6 @@
 ===============================================================================
 		   TeamSpeak 3 SideWinder Game Voice Plugin
-                       Copyright 2012-2013 JoeBilly
+                       Copyright 2012-2014 JoeBilly
 		 https://sourceforge.net/projects/ts3gamevoice/
 			joebilly@users.sourceforge.net
 ===============================================================================

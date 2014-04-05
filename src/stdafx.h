@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 JoeBilly
+ * Copyright (c) 2012-2014 JoeBilly
  * Copyright (C) 2010 Simon Inns
  * 
  * Standard system include file
