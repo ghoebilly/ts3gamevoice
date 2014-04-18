@@ -348,10 +348,7 @@ static void findDevice(int usbVid, int usbPid)
 
 	// Device ID
 	OutputDebugString("findDevice: Seaching for device ID below");
-	snprintf(usbId, 18, "VID_%04X&PID_%04X", usbVid, usbPid);
-	for (int i = 0; usbId[i]; i++){
-		usbId[i] = tolower(usbId[i]);
-	}
+	snprintf(usbId, 18, "vid_%04x&pid_%04x", usbVid, usbPid);
 	DeviceIDToFind = usbId;
 	OutputDebugString(DeviceIDToFind);
 
