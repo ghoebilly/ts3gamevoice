@@ -344,11 +344,16 @@ static void findDevice(int usbVid, int usbPid)
 
 	GUID GUID_DEVINTERFACE_USB_DEVICE = {0x4d1e55b2, 0xf16f, 0x11cf, 0x88, 0xcb, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30};
 
+	char debugOutput[40];
+
 	// Device ID
 	OutputDebugString("findDevice: Seaching for device ID below");
 	snprintf(usbId, 18, "VID_%04X&PID_%04X", usbVid, usbPid);
+	for (int i = 0; usbId[i]; i++){
+		usbId[i] = tolower(usbId[i]);
+	}
 	DeviceIDToFind = usbId;
-	OutputDebugString(DeviceIDToFind);				
+	OutputDebugString(DeviceIDToFind);
 
 	LocalFree(usbId);
 
@@ -410,9 +415,9 @@ static void findDevice(int usbVid, int usbPid)
 			{
 				// Finally we can start checking if we've found a useable device,
 				// by inspecting the DevIntfDetailData->DevicePath variable.
-				if (NULL != _stricmp((TCHAR*)DevIntfDetailData->DevicePath, _T(DeviceIDToFind)))
+				if (NULL != strstr((TCHAR*)DevIntfDetailData->DevicePath, _T(DeviceIDToFind)))
 				{					
-					OutputDebugString("findDevice: Device path is below");
+					OutputDebugString("findDevice: Device found, path is below");
 					OutputDebugString(DevIntfDetailData->DevicePath);
 
 					// Open the write handle
@@ -522,7 +527,7 @@ static void handleDeviceChangeMessages(UINT uMsg, WPARAM wParam, LPARAM lParam, 
 				((int)wParam == DBT_DEVICEREMOVECOMPLETE) || ((int)wParam == DBT_CONFIGCHANGED) )
 			{
 			// Check the device is still available
-			findDevice(vid, pid); // VID, PID			 
+			findDevice(vid, pid); // VID, PID
 			}
 		}
 }

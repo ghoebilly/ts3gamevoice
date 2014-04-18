@@ -214,6 +214,9 @@
     <PostBuildEvent>
       <Command>COPY /Y "$(TargetPath)" "C:\Program Files\TeamSpeak 3 Client\plugins\"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>COPY /Y "$(SolutionDir)\gamevoice.txt" "$(TargetDir)"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\clientlib_publicdefinitions.h" />
