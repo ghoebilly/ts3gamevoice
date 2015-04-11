@@ -2,7 +2,7 @@
  * Copyright (c) 2012-2014 JoeBilly 
  *
  * Game Voice helper functions header
- * gamevoice_helpers.h
+ * gamevoice_functions.h
  * JoeBilly (joebilly@users.sourceforge.net)
  * https://sourceforge.net/projects/ts3gamevoice/
  *
@@ -71,13 +71,13 @@ typedef struct GameVoiceFunctions
 	BOOL (*isButtonInactive)(size_t command);
 
 	// Device general methods
-	/* Blinks all the device leds/button by activating & deactivating device buttons.
+	/* Blinks the device leds/button by activating & deactivating device buttons.
 	 */
 	void (*blinkDevice)();
 	/* Loads the device : find it and attach to it
 	 */
 	BOOL (*loadDevice)();
-	/* Resets the device to its base state
+	/* Resets the device to its base state.
 	 */
 	void (*resetDevice)();
 	/* Runs a clockwise led chase effect by activating & deactivating all device buttons sequentially
@@ -108,7 +108,16 @@ typedef struct GameVoiceFunctions
 	// void (*readFeature)();
 	/* Sends a feature to the device when its available
 	 */
-	BOOL (*sendFeature)(size_t command);	
+	BOOL (*sendFeature)(size_t command);
+
+	// Button handling
+	/* Activate the specified button
+	*/
+	BOOL (*activateButton)(size_t command);
+
+	/* Deactivate the specified button
+	*/
+	BOOL(*deactivateButton)(size_t command);
 } GameVoiceFunctions;
 
 GameVoiceFunctions InitGameVoiceFunctions();

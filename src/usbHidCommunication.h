@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 JoeBilly
+ * Copyright (c) 2012-2015 JoeBilly
  * Copyright (C) 2010 Simon Inns
  * 
  * HID USB communication functions header
@@ -63,7 +63,7 @@ typedef struct UsbHidCommunication
 // This public method detaches the USB device and forces the 
 // worker threads to cancel IO and abort if required.
 // This is used when we're done communicating with the device
-void (*detachUsbDevice)();
+void (*detachDevice)();
 
 // Constructor method
 void (*initUsbHidCommunication)();
@@ -109,7 +109,7 @@ void (*handleDeviceChangeMessages)(UINT uMsg, WPARAM wParam, LPARAM lParam, int 
 // If the USB device stops responding to the read/write
 // operations (due to a software or firmware bug) you can use
 // this method to recover back into a known state.
-void (*detachBrokenUsbDevice)();
+void (*detachBrokenDevice)();
 
 // Define public method for reading the deviceAttached flag
 BOOL (*isDeviceAttached)(void);
@@ -118,25 +118,28 @@ BOOL (*isDeviceAttached)(void);
 BOOL (*isDeviceBroken)(void);
 
 // The following method forces a feature request to the USB device (the device must have been found first!)
-BOOL (*forceUsbFeature)(int usbCommandId);
+BOOL (*forceFeature)(int usbCommandId);
+
+// The following method gets a report request from the USB device (the device must have been found first!)
+byte(*getInputReport)();
 
 // The following method gets a feature request from the USB device (the device must have been found first!)
-byte (*getUsbFeature)();
+byte (*getFeature)();
 
 // The following method sends a feature request to the USB device (the device must have been found first!)
-BOOL (*sendUsbFeature)(int usbCommandId);
+BOOL (*sendFeature)(int usbCommandId);
 
 // The following method sends a command to the USB device (the device must have been found first!)
 // This method is for commands that are sent, but no input is returned from the device
-BOOL (*sendUsbCommandWriteOnly)(int usbCommandId);
+BOOL (*sendCommandWriteOnly)(int usbCommandId);
 
 // The following method sends a command to the USB device (the device must have been found first!)
 // This method is for commands that are sent and expect a reply
-BOOL (*sendUsbCommandWriteRead)(int usbCommandId);
+BOOL (*sendCommandWriteRead)(int usbCommandId);
 
 // The following method receive a command from the USB device (the device must have been found first!)
 // This method is for commands that are received and expect a reply
-BOOL (*receiveUsbCommand)();
+BOOL (*receiveCommand)();
 
 // This public method allows writing to the output buffer
 // Note: you cannot write to byte 0 as these are reserved

@@ -1,25 +1,25 @@
-/* 
- * Copyright (c) 2012-2014 JoeBilly 
+/*
+ * Copyright (c) 2012-2015 JoeBilly
  *
  * Game voice helper functions
- * gamevoice_helpers.c
+ * gamevoice_functions.c
  * JoeBilly (joebilly@users.sourceforge.net)
  * https://sourceforge.net/projects/ts3gamevoice/
  *
  *  This file is part of TeamSpeak 3 SideWinder Game Voice Plugin.
  *
- *  TeamSpeak 3 SideWinder Game Voice Plugin is free software: 
- *	you can redistribute it and/or modify it under the terms of the 
- *	GNU General Public License as published by the Free Software Foundation, 
+ *  TeamSpeak 3 SideWinder Game Voice Plugin is free software:
+ *	you can redistribute it and/or modify it under the terms of the
+ *	GNU General Public License as published by the Free Software Foundation,
  *	either version 3 of the License, or (at your option) any later version.
  *
- *  TeamSpeak 3 SideWinder Game Voice Plugin is distributed in the hope 
- *  that it will be useful, but WITHOUT ANY WARRANTY; without even the 
+ *  TeamSpeak 3 SideWinder Game Voice Plugin is distributed in the hope
+ *  that it will be useful, but WITHOUT ANY WARRANTY; without even the
  *  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *  See the GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with TeamSpeak 3 SideWinder Game Voice Plugin. 
+ *  along with TeamSpeak 3 SideWinder Game Voice Plugin.
  *  If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -33,6 +33,7 @@ static size_t effectiveCommand = NULL;
 static byte lastCommandReceived = NULL;
 static byte previousCommandReceived = NULL;
 static byte lastFeatureSent = NULL;
+static BOOL featureSent = NULL;
 
 /* Gets the effective command applied to the device after a waitForCommand or waitForExternalCommand
  * Effective command contains buttons (Command) that are activated or deactivated (Action)
@@ -68,7 +69,7 @@ static byte getLastFeatureSent()
  */
 /*static BOOL isNewCommand(byte value, size_t command)
 {
-	return !(previousCommandReceived & command) && (value & command);
+return !(previousCommandReceived & command) && (value & command);
 }*/
 
 /* Determines whether the last command is a new command and match the specified command.
@@ -76,7 +77,7 @@ static byte getLastFeatureSent()
  */
 /*static BOOL isNewLastCommand(size_t command)
 {
-	return !(previousCommandReceived & command) && (lastCommandReceived & command);
+return !(previousCommandReceived & command) && (lastCommandReceived & command);
 }*/
 
 /* Determines whether the specified button has been activated during a waitForcommand or waitForExternalCommand.
@@ -135,10 +136,13 @@ static BOOL loadDevice()
 
 static void resetDevice()
 {
+	effectiveCommand = NULL;
 	lastCommandReceived = NULL;
+	previousCommandReceived = NULL;
 	lastFeatureSent = NULL;
-	usbHidCommunicator.forceUsbFeature(NONE);
-	usbHidCommunicator.forceUsbFeature(NONE);
+	featureSent = NULL;
+	usbHidCommunicator.forceFeature(NONE);
+	usbHidCommunicator.forceFeature(NONE);
 }
 
 static void unloadDevice()
@@ -148,30 +152,51 @@ static void unloadDevice()
 }
 
 static void runDeviceLedChase()
-{ 
-	usbHidCommunicator.sendUsbFeature(CHANNEL_1);
+{
+	sendFeature(CHANNEL_1);
 	Sleep(75);
-	usbHidCommunicator.sendUsbFeature(CHANNEL_2);
+	sendFeature(CHANNEL_2);
 	Sleep(75);
-	usbHidCommunicator.sendUsbFeature(CHANNEL_3);
+	sendFeature(CHANNEL_3);
 	Sleep(75);
-	usbHidCommunicator.sendUsbFeature(CHANNEL_4);
+	sendFeature(CHANNEL_4);
 	Sleep(75);
-	usbHidCommunicator.sendUsbFeature(TEAM);
+	sendFeature(NONE);
+	sendFeature(COMMAND);
 	Sleep(75);
-	usbHidCommunicator.sendUsbFeature(ALL);
+	sendFeature(NONE);
+	sendFeature(TEAM);
 	Sleep(75);
-	usbHidCommunicator.sendUsbFeature(NONE);
-	usbHidCommunicator.sendUsbFeature(COMMAND);
+	sendFeature(ALL);
 	Sleep(75);
-	usbHidCommunicator.sendUsbFeature(NONE);
+	sendFeature(NONE);
 }
 
-/* Blinks all the device leds/button by activating & deactivating device buttons.
+/* Blinks the device leds/button by activating & deactivating device buttons.
  */
 static void blinkDevice()
 {
+	byte previousState = usbHidCommunicator.getInputReport();
 
+	forceFeature(NONE);
+	Sleep(75);
+	forceFeature(CHANNEL_1 | CHANNEL_2 | CHANNEL_3 | CHANNEL_4);
+	Sleep(100);
+	forceFeature(NONE);
+	Sleep(75);
+	forceFeature(CHANNEL_1 | CHANNEL_2 | CHANNEL_3 | CHANNEL_4);
+	Sleep(100);
+	forceFeature(NONE);
+	Sleep(75);
+	forceFeature(CHANNEL_1 | CHANNEL_2 | CHANNEL_3 | CHANNEL_4);
+	Sleep(100);
+	forceFeature(NONE);
+	Sleep(75);
+	forceFeature(CHANNEL_1 | CHANNEL_2 | CHANNEL_3 | CHANNEL_4);
+	Sleep(100);
+	forceFeature(NONE);
+	Sleep(75);
+	forceFeature(previousState);
 }
 
 static byte readCommand()
@@ -181,14 +206,14 @@ static byte readCommand()
 
 static BOOL waitForCommand()
 {
-	char debugOutput[40];
+	char debugOutput[65];
 	previousCommandReceived = lastCommandReceived;
-	if (usbHidCommunicator.receiveUsbCommand())
+	if (usbHidCommunicator.receiveCommand())
 	{
 		byte command;
 		lastCommandReceived = readCommand();
 		command = (previousCommandReceived ^ lastCommandReceived);
-		
+
 		if (command & COMMAND)
 			command = COMMAND;
 
@@ -197,16 +222,16 @@ static BOOL waitForCommand()
 		else
 			effectiveCommand = command | DEACTIVATED;
 
-		snprintf(debugOutput, 40, "lastFeatureSent:%d", lastFeatureSent);
+		snprintf(debugOutput, 65, "waitForCommand:lastFeatureSent:%d", lastFeatureSent);
 		OutputDebugString(debugOutput);
-		snprintf(debugOutput, 40, "lastCommandReceived:%d", lastCommandReceived);
+		snprintf(debugOutput, 65, "waitForCommand:lastCommandReceived:%d", lastCommandReceived);
 		OutputDebugString(debugOutput);
-		snprintf(debugOutput, 40, "effectiveCommand:%d", effectiveCommand);
-		OutputDebugString(debugOutput);
+		snprintf(debugOutput, 65, "waitForCommand:effectiveCommand:%d", effectiveCommand);
+		OutputDebugString(debugOutput);		
 	}
 	else
 		return FALSE;
-	
+
 	return TRUE;
 }
 
@@ -215,15 +240,21 @@ static BOOL waitForExternalCommand()
 	BOOL result;
 	do
 	{
+		featureSent = FALSE;
 		result = waitForCommand();
-	} while (lastFeatureSent != NULL && lastCommandReceived == lastFeatureSent);
+		//char debugOutput[65];
+		//snprintf(debugOutput, 65, "waitForExternalCommand:featureSent:%d", featureSent);
+		//OutputDebugString(debugOutput);
+		Sleep(5);
+	} while (result && lastFeatureSent == lastCommandReceived);
 
 	return result;
 }
 
 static BOOL forceFeature(size_t command)
 {
-	if (usbHidCommunicator.forceUsbFeature(command))
+	featureSent = usbHidCommunicator.forceFeature(command);
+	if (featureSent)
 		lastFeatureSent = command;
 	else
 		return FALSE;
@@ -233,12 +264,37 @@ static BOOL forceFeature(size_t command)
 
 static BOOL sendFeature(size_t command)
 {
-	if (usbHidCommunicator.sendUsbFeature(command))
+	featureSent = usbHidCommunicator.sendFeature(command);
+	if (featureSent)
 		lastFeatureSent = command;
 	else
 		return FALSE;
 
 	return TRUE;
+}
+
+static BOOL activateButton(size_t command)
+{
+	byte currentFeature;
+	currentFeature = usbHidCommunicator.getInputReport();
+
+	// Button already active
+	if (currentFeature & command)
+		return FALSE;
+
+	return forceFeature(currentFeature | command);
+}
+
+static BOOL deactivateButton(size_t command)
+{
+	byte currentFeature;
+	currentFeature = usbHidCommunicator.getInputReport();
+
+	// Button already inactive
+	if (!(currentFeature & command))
+		return FALSE;
+
+	return forceFeature(currentFeature ^ command);
 }
 
 // GameVoiceFunctions factory
@@ -250,7 +306,7 @@ GameVoiceFunctions InitGameVoiceFunctions()
 	gamevoiceFunctions.getEffectiveCommand = getEffectiveCommand;
 	gamevoiceFunctions.getLastCommandReceived = getLastCommandReceived;
 	gamevoiceFunctions.getLastFeatureSent = getLastFeatureSent;
-	gamevoiceFunctions.getPreviousCommandReceived = getPreviousCommandReceived;	
+	gamevoiceFunctions.getPreviousCommandReceived = getPreviousCommandReceived;
 	//gamevoiceFunctions.getPreviousState = getPreviousState;
 	gamevoiceFunctions.isButtonActivated = isButtonActivated;
 	gamevoiceFunctions.isButtonActive = isButtonActive;
@@ -268,6 +324,9 @@ GameVoiceFunctions InitGameVoiceFunctions()
 	gamevoiceFunctions.unloadDevice = unloadDevice;
 	gamevoiceFunctions.waitForCommand = waitForCommand;
 	gamevoiceFunctions.waitForExternalCommand = waitForExternalCommand;
+
+	gamevoiceFunctions.activateButton = activateButton;
+	gamevoiceFunctions.deactivateButton = deactivateButton;
 
 	return gamevoiceFunctions;
 }

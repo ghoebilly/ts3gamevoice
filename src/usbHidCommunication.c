@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 JoeBilly
+ * Copyright (c) 2012-2015 JoeBilly
  * Copyright (C) 2010 Simon Inns
  * 
  * HID USB communication functions
@@ -42,7 +42,8 @@ BOOL deviceAttached = FALSE;
 BOOL deviceAttachedButBroken = FALSE;
 static HANDLE WriteHandle = INVALID_HANDLE_VALUE;
 static HANDLE ReadHandle = INVALID_HANDLE_VALUE;
-static HANDLE FeatureHandle = INVALID_HANDLE_VALUE;			
+static HANDLE FeatureHandle = INVALID_HANDLE_VALUE;
+static HANDLE ReportHandle = INVALID_HANDLE_VALUE;
 
 // Private variables to store the input and output
 // buffers for USB communication
@@ -59,20 +60,21 @@ enum eWorkerThreadState workerThreadState = idle;
 // This public method detaches the USB device and forces the 
 // worker threads to cancel IO and abort if required.
 // This is used when we're done communicating with the device
-static void detachUsbDevice()
+static void detachDevice()
 {
 	if (deviceAttached == TRUE)
 	{
-		OutputDebugString("Detaching USB device");
+		OutputDebugString("Detaching device...");
 
 		if (workerThreadState != idle)
 		{
-			OutputDebugString("Cancelling IO ops");
+			OutputDebugString("Cancelling IO ops...");
 
 			// Cancel any pending IO operations
 			CancelIoEx(WriteHandle, NULL);
 			CancelIoEx(ReadHandle, NULL);
 			CancelIoEx(FeatureHandle, NULL);
+			CancelIoEx(ReportHandle, NULL);
 
 			// Clear the worker thread flags
 			workerThreadState = idle;
@@ -82,7 +84,7 @@ static void detachUsbDevice()
 		deviceAttached = FALSE;
 		deviceAttachedButBroken = FALSE;
 
-		OutputDebugString("Closing worker thread");
+		OutputDebugString("Closing worker thread...");
 
 		workerThreadState = terminated;
 
@@ -92,12 +94,13 @@ static void detachUsbDevice()
 		CloseHandle(usbWorkerThreadHandle);
 		//the_usbWorkerThread->Abort();
 
-		OutputDebugString("Closing handles");
+		OutputDebugString("Closing handles...");
 
 		// Close the device file handles
 		CloseHandle(WriteHandle);
 		CloseHandle(ReadHandle);
 		CloseHandle(FeatureHandle);
+		CloseHandle(ReportHandle);
 	}
 } // END detachUsbDevice Method
 
@@ -117,6 +120,7 @@ static void initUsbHidCommunication()
 	WriteHandle = INVALID_HANDLE_VALUE;
 	ReadHandle = INVALID_HANDLE_VALUE;
 	FeatureHandle = INVALID_HANDLE_VALUE;
+	ReportHandle = INVALID_HANDLE_VALUE;
 
 	// Initialise the input and output buffers for communicating
 	// with the USB device
@@ -136,7 +140,7 @@ static void initUsbHidCommunication()
 static void finalizeUsbHidCommunication()
 {
 	// Cleanly detach ourselves from the USB device
-	detachUsbDevice();
+	detachDevice();
 } // END ~usbHidCommunication method
 
 
@@ -172,7 +176,7 @@ static DWORD WINAPI usbWorkerThread(LPVOID pData)
 			unsigned char * unmanagedInputBuffer = &inputBuffer[0];
 
 			// Get the packet from the USB device
-			OutputDebugString("usbWorkerThread:read: Get the packet from the USB device");
+			OutputDebugString("usbWorkerThread:read: Read the packet from the USB device");
 			ReadFile(ReadHandle, unmanagedInputBuffer, 65, &bytesRead, 0);
 			//OutputDebugString("Read in input buffer");
 			//_snprintf(debugOutput, 20, "%d", bytesRead);
@@ -215,19 +219,9 @@ static DWORD WINAPI usbWorkerThread(LPVOID pData)
 
 		if (workerThreadState == setFeature)
 		{
-			//char debugOutput[20];
-
 			// Map the managed data array from the class to an unmanaged
 			// pointer for the ReadFile function
 			unsigned char * unmanagedFeatureBuffer = &featureBuffer[0];
-
-			// DEBUG
-			//OutputDebugString("usbWorkerThread: FeatureBuffer below");
-			//for (loopCounter = 0; loopCounter < 65; loopCounter++) 
-			//{
-			//snprintf(debugOutput, 20, "%d", featureBuffer[loopCounter]);
-			//OutputDebugString(debugOutput);
-			//}
 
 			// Get the packet from the USB device
 			OutputDebugString("usbWorkerThread:setFeature: Set feature to the USB device");
@@ -266,14 +260,6 @@ static DWORD WINAPI usbWorkerThread(LPVOID pData)
 			// Map the managed data array from the class to an unmanaged
 			// pointer for the WriteFile function
 			unsigned char * unmanagedOutputBuffer = &outputBuffer[0];						
-
-			// DEBUG
-			//OutputDebugString("usbWorkerThread: OutputBuffer below");
-			//for (loopCounter = 0; loopCounter < 65; loopCounter++) 
-			//{
-			//snprintf(debugOutput, 20, "%d", outputBuffer[loopCounter]);
-			//OutputDebugString(debugOutput);
-			//}
 
 			// Send the packet to the USB device
 			OutputDebugString("usbWorkerThread:write: Send the packet to the USB device");
@@ -341,6 +327,7 @@ static void findDevice(int usbVid, int usbPid)
 	DWORD ErrorStatusWrite;
 	DWORD ErrorStatusRead;
 	DWORD ErrorStatusFeature;
+	DWORD ErrorStatusReport;
 
 	GUID GUID_DEVINTERFACE_USB_DEVICE = {0x4d1e55b2, 0xf16f, 0x11cf, 0x88, 0xcb, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30};
 
@@ -354,11 +341,11 @@ static void findDevice(int usbVid, int usbPid)
 
 	LocalFree(usbId);
 
-	OutputDebugString("findDevice: Detaching USB device in case of...");
+	OutputDebugString("findDevice: Detaching USB device just in case...");
 	// If the device is currently flagged as attached then we are 'rechecking' the device, probably
 	// due to some message receieved from Windows indicating a device status chanage.  In this case
 	// we should detach the USB device cleanly (if required) before reattaching it.
-	detachUsbDevice();
+	detachDevice();
 
 	OutputDebugString("findDevice: SetupDiGetClassDevs: Initializing HID class devices...");
 	// We will try to get device information set for all USB devices that have a
@@ -429,11 +416,16 @@ static void findDevice(int usbVid, int usbPid)
 
 					// Open the feature handle
 					FeatureHandle = CreateFile((DevIntfDetailData->DevicePath),
-						GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
+						GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
 					ErrorStatusFeature = GetLastError();
+					
+					// Open the report handle
+					ReportHandle = CreateFile((DevIntfDetailData->DevicePath),
+						GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
+					ErrorStatusReport = GetLastError();
 
 					// Check to see if we opened the read and write handles successfully
-					if((ErrorStatusWrite == ERROR_SUCCESS) && (ErrorStatusRead == ERROR_SUCCESS) && (ErrorStatusFeature == ERROR_SUCCESS))
+					if ((ErrorStatusWrite == ERROR_SUCCESS) && (ErrorStatusRead == ERROR_SUCCESS) && (ErrorStatusFeature == ERROR_SUCCESS) && (ErrorStatusReport == ERROR_SUCCESS))
 					{
 						OutputDebugString("findDevice: Success ! Device is now attached");
 
@@ -455,8 +447,10 @@ static void findDevice(int usbVid, int usbPid)
 							CloseHandle(WriteHandle);
 						if(ErrorStatusRead == ERROR_SUCCESS)
 							CloseHandle(ReadHandle);
-						if(ErrorStatusFeature == ERROR_SUCCESS)
+						if (ErrorStatusFeature == ERROR_SUCCESS)
 							CloseHandle(FeatureHandle);
+						if (ErrorStatusReport == ERROR_SUCCESS)
+							CloseHandle(ReportHandle);
 
 						deviceAttached = FALSE;
 						deviceAttachedButBroken = TRUE;
@@ -534,11 +528,11 @@ static void handleDeviceChangeMessages(UINT uMsg, WPARAM wParam, LPARAM lParam, 
 // If the USB device stops responding to the read/write
 // operations (due to a software or firmware bug) you can use
 // this method to recover back into a known state.
-static void detachBrokenUsbDevice()
+static void detachBrokenDevice()
 {
 	if (deviceAttached == TRUE)
 	{
-		OutputDebugString("detachBrokenUsbDevice: Detaching broken USB device...");
+		OutputDebugString("detachBrokenDevice: Detaching broken device...");
 
 		if (workerThreadState != idle)
 		{
@@ -546,6 +540,7 @@ static void detachBrokenUsbDevice()
 			CancelIoEx(WriteHandle, NULL);
 			CancelIoEx(ReadHandle, NULL);
 			CancelIoEx(FeatureHandle, NULL);
+			CancelIoEx(ReportHandle, NULL);
 
 			// Clear the worker thread flags
 			workerThreadState = idle;
@@ -563,6 +558,7 @@ static void detachBrokenUsbDevice()
 		CloseHandle(WriteHandle);
 		CloseHandle(ReadHandle);
 		CloseHandle(FeatureHandle);
+		CloseHandle(ReportHandle);
 	}
 } // END detachBrokenUsbDevice Method
 
@@ -611,7 +607,7 @@ static BOOL waitForTheWorkerThreadToBeIdle(BOOL checkForTimeOut)
 		// a read which is not coming.
 		//
 		// Let's detach the USB device to return us into a known state...
-		detachBrokenUsbDevice();
+		detachBrokenDevice();
 		return FALSE;
 	}
 
@@ -619,7 +615,7 @@ static BOOL waitForTheWorkerThreadToBeIdle(BOOL checkForTimeOut)
 } // END waitForTheWorkerThreadToBeIdle method
 
 // The following method forces a feature request to the USB device (the device must have been found first!)
-static BOOL forceUsbFeature(int usbCommandId)
+static BOOL forceFeature(int usbCommandId)
 {
 	// Variables for tracking how much is read and written
 	DWORD bytesRead = 0;				
@@ -633,7 +629,7 @@ static BOOL forceUsbFeature(int usbCommandId)
 		return FALSE;
 	}
 
-	snprintf(strCommandId, 40, "forceUsbFeature:command:%d", usbCommandId);
+	snprintf(strCommandId, 40, "forceFeature:command:%d", usbCommandId);
 	OutputDebugString(strCommandId);					
 
 	// The first byte of the input and feature buffers should be set to zero (this is not
@@ -646,16 +642,8 @@ static BOOL forceUsbFeature(int usbCommandId)
 	inputBuffer[1] = 0xFF;
 	featureBuffer[1] = usbCommandId;
 
-	// DEBUG
-	//OutputDebugString("usbWorkerThread: FeatureBuffer below");
-	//for (loopCounter = 0; loopCounter < 65; loopCounter++) 
-	//{
-	//snprintf(debugOutput, 20, "%d", featureBuffer[loopCounter]);
-	//OutputDebugString(debugOutput);
-	//}				
-
 	// Get the packet from the USB device
-	OutputDebugString("forceUsbFeature: Set feature to the USB device");
+	OutputDebugString("forceFeature: Set feature to the USB device");
 	if (HidD_SetFeature(FeatureHandle, unmanagedFeatureBuffer, 65))
 	{
 		// We need to read the return from the device
@@ -665,23 +653,24 @@ static BOOL forceUsbFeature(int usbCommandId)
 		unsigned char * unmanagedInputBuffer = &inputBuffer[0];
 
 		// Get the packet from the USB device
-		ReadFile(FeatureHandle, unmanagedInputBuffer, 65, &bytesRead, 0);
+		// ReadFile(FeatureHandle, unmanagedInputBuffer, 65, &bytesRead, 0);
 					
 		// Return with success
 		return TRUE;
 	}
 	else
-		OutputDebugString("forceUsbFeature: /!\\ Failed to set feature to the USB device");
+		OutputDebugString("forceFeature: /!\\ Failed to set feature to the USB device");
 
 	return FALSE;
 }
 
-// The following method gets a feature request from the USB device (the device must have been found first!)
-static byte getUsbFeature()
+// The following method gets a report request from the USB device (the device must have been found first!)
+static byte getInputReport()
 {
 	// Variables for tracking how much is read and written
-	DWORD bytesRead = 0;				
-	unsigned char * unmanagedFeatureBuffer = &featureBuffer[0];				
+	DWORD bytesRead = 0;
+	unsigned char *reportBuffer = (unsigned char *)malloc(65);
+	unsigned char * unmanagedReportBuffer = &reportBuffer[0];
 	char strCommandId[40];
 
 	// Check to see if the device is already found
@@ -691,38 +680,65 @@ static byte getUsbFeature()
 		return NULL;
 	}
 
-	//snprintf(strCommandId, 40, "getUsbFeature");		
-
-	// The first byte of the input and feature buffers should be set to zero (this is not
+	// The first byte of the report buffer should be set to zero (this is not
 	// sent to the USB device)
-	featureBuffer[0] = 0;
-
-	// DEBUG
-	//OutputDebugString("usbWorkerThread: FeatureBuffer below");
-	//for (loopCounter = 0; loopCounter < 65; loopCounter++) 
-	//{
-	//snprintf(debugOutput, 20, "%d", featureBuffer[loopCounter]);
-	//OutputDebugString(debugOutput);
-	//}				
+	reportBuffer[0] = 0;
+	reportBuffer[1] = 0;
 
 	// Get the packet from the USB device
-	OutputDebugString("getUsbFeature: Get feature from the USB device");
+	OutputDebugString("getInputReport: Get input report from the USB device");
+	if (HidD_GetInputReport(FeatureHandle, unmanagedReportBuffer, 65))
+	{
+		snprintf(strCommandId, 40, "getInputReport:%d", reportBuffer[1]);
+		OutputDebugString(strCommandId);
+
+		// Return with success
+		return reportBuffer[1];
+	}
+	else
+		OutputDebugString("getInputReport: /!\\ Failed to get input report to the USB device");
+
+	return NULL;
+}
+
+// The following method gets a feature request from the USB device (the device must have been found first!)
+static byte getFeature()
+{
+	// Variables for tracking how much is read and written
+	DWORD bytesRead = 0;				
+	unsigned char * unmanagedFeatureBuffer = &featureBuffer[0];				
+	char strCommandId[40];
+	
+	// Check to see if the device is already found
+	if (deviceAttached == FALSE)
+	{
+		// There is no device to communicate with... Exit with error status
+		return NULL;
+	}
+
+	// The first byte of the feature buffers should be set to zero (this is not
+	// sent to the USB device)
+	featureBuffer[0] = 0;
+	featureBuffer[1] = 0;
+
+	// Get the packet from the USB device
+	OutputDebugString("getFeature: Get feature from the USB device");
 	if (HidD_GetFeature(FeatureHandle, unmanagedFeatureBuffer, 65))
 	{
-		snprintf(strCommandId, 40, "getUsbFeature:%d", featureBuffer[1]);
+		snprintf(strCommandId, 40, "getFeature:%d", featureBuffer[1]);
 		OutputDebugString(strCommandId);
 
 		// Return with success
 		return featureBuffer[1];
 	}
 	else
-		OutputDebugString("getUsbFeature: /!\\ Failed to get feature to the USB device");
+		OutputDebugString("getFeature: /!\\ Failed to get feature to the USB device");
 
 	return NULL;
 }
 
 // The following method sends a feature request to the USB device (the device must have been found first!)
-static BOOL sendUsbFeature(int usbCommandId)
+static BOOL sendFeature(int usbCommandId)
 {
 	char strCommandId[40];
 
@@ -733,13 +749,13 @@ static BOOL sendUsbFeature(int usbCommandId)
 		return FALSE;
 	}
 
-	OutputDebugString("sendUsbFeature");
+	OutputDebugString("sendFeature");
 
 	// Wait for the worker thread to be idle before continuing
 	if (waitForTheWorkerThreadToBeIdle(TRUE))
 	{
-		snprintf(strCommandId, 40, "sendUsbFeature:command:%d", usbCommandId);
-		OutputDebugString("sendUsbFeature: Worker thread is idle, setting command ID and state to SetFeature...");
+		snprintf(strCommandId, 40, "sendFeature:command:%d", usbCommandId);
+		OutputDebugString("sendFeature: Worker thread is idle, setting command ID and state to SetFeature...");
 		OutputDebugString(strCommandId);
 
 		// The first byte of the input and feature buffers should be set to zero (this is not
@@ -763,7 +779,7 @@ static BOOL sendUsbFeature(int usbCommandId)
 
 // The following method sends a command to the USB device (the device must have been found first!)
 // This method is for commands that are sent, but no input is returned from the device
-static BOOL sendUsbCommandWriteOnly(int usbCommandId)
+static BOOL sendCommandWriteOnly(int usbCommandId)
 {
 	char strCommandId[40];
 
@@ -774,13 +790,13 @@ static BOOL sendUsbCommandWriteOnly(int usbCommandId)
 		return FALSE;
 	}
 
-	OutputDebugString("sendUsbCommandWriteOnly");
+	OutputDebugString("sendCommandWriteOnly");
 
 	// Wait for the worker thread to be idle before continuing
 	if (waitForTheWorkerThreadToBeIdle(TRUE))
 	{
-		snprintf(strCommandId, 40, "sendUsbCommandWriteOnly:command:%d", usbCommandId);
-		OutputDebugString("sendUsbCommandWriteOnly: Worker thread is idle, setting command ID and state to Write...");
+		snprintf(strCommandId, 40, "sendCommandWriteOnly:command:%d", usbCommandId);
+		OutputDebugString("sendCommandWriteOnly: Worker thread is idle, setting command ID and state to Write...");
 		OutputDebugString(strCommandId);
 
 		// The first byte of the input and output buffers should be set to zero (this is not
@@ -803,7 +819,7 @@ static BOOL sendUsbCommandWriteOnly(int usbCommandId)
 
 // The following method sends a command to the USB device (the device must have been found first!)
 // This method is for commands that are sent and expect a reply
-static BOOL sendUsbCommandWriteRead(int usbCommandId)
+static BOOL sendCommandWriteRead(int usbCommandId)
 {
 	// Check to see if the device is already found
 	if (deviceAttached == FALSE)
@@ -812,12 +828,12 @@ static BOOL sendUsbCommandWriteRead(int usbCommandId)
 		return FALSE;
 	}
 
-	OutputDebugString("sendUsbCommandWriteRead");
+	OutputDebugString("sendCommandWriteRead");
 
 	// Wait for the worker thread to be idle before continuing
 	if (waitForTheWorkerThreadToBeIdle(TRUE))
 	{
-		OutputDebugString("sendUsbCommandWriteRead: Worker thread is idle, setting command ID and state to WriteRead...");
+		OutputDebugString("sendCommandWriteRead: Worker thread is idle, setting command ID and state to WriteRead...");
 
 		// The first byte of the input and output buffers should be set to zero (this is not
 		// sent to the USB device)
@@ -838,7 +854,7 @@ static BOOL sendUsbCommandWriteRead(int usbCommandId)
 	else return FALSE;
 } // END sendUsbCommandReadWrite Method
 
-static BOOL receiveUsbCommand()
+static BOOL receiveCommand()
 {
 	// Check to see if the device is already found
 	if (deviceAttached == FALSE)
@@ -852,7 +868,7 @@ static BOOL receiveUsbCommand()
 	// Wait for the worker thread to be idle before continuing
 	if (waitForTheWorkerThreadToBeIdle(TRUE))
 	{
-		OutputDebugString("sendUsbCommandReadOnly: Worker thread is idle, setting state to Read...");
+		OutputDebugString("receiveCommand: Worker thread is idle, setting state to Read...");
 
 		// The first byte of the input buffer should be set to zero (this is not
 		// sent to the USB device)
@@ -963,23 +979,24 @@ static BOOL writeToTheFeatureBuffer(int byteNumber, byte value)
 UsbHidCommunication CreateUsbHidCommunicator()
 {
 	UsbHidCommunication communicator;
-	communicator.detachBrokenUsbDevice = detachBrokenUsbDevice;
-	communicator.detachUsbDevice = detachUsbDevice;
+	communicator.detachBrokenDevice = detachBrokenDevice;
+	communicator.detachDevice = detachDevice;
 	communicator.finalizeUsbHidCommunication = finalizeUsbHidCommunication;
 	communicator.findDevice = findDevice;
-	communicator.forceUsbFeature = forceUsbFeature;
-	communicator.getUsbFeature = getUsbFeature;
+	communicator.forceFeature = forceFeature;
+	communicator.getInputReport = getInputReport;
+	communicator.getFeature = getFeature;
 	communicator.handleDeviceChangeMessages = handleDeviceChangeMessages;
 	communicator.initUsbHidCommunication = initUsbHidCommunication;
 	communicator.isDeviceAttached = isDeviceAttached;
 	communicator.isDeviceBroken = isDeviceBroken;
 	communicator.readFromTheFeatureBuffer = readFromTheFeatureBuffer;
 	communicator.readFromTheInputBuffer = readFromTheInputBuffer;
-	communicator.receiveUsbCommand = receiveUsbCommand;
+	communicator.receiveCommand = receiveCommand;
 	communicator.requestDeviceNotificationsToForm = requestDeviceNotificationsToForm;
-	communicator.sendUsbCommandWriteOnly = sendUsbCommandWriteOnly;
-	communicator.sendUsbCommandWriteRead = sendUsbCommandWriteRead;
-	communicator.sendUsbFeature = sendUsbFeature;
+	communicator.sendCommandWriteOnly = sendCommandWriteOnly;
+	communicator.sendCommandWriteRead = sendCommandWriteRead;
+	communicator.sendFeature = sendFeature;
 	communicator.writeToTheFeatureBuffer = writeToTheFeatureBuffer;
 	communicator.writeToTheOutputBuffer = writeToTheOutputBuffer;
 

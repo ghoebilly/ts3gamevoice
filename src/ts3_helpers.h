@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2012-2014 JoeBilly 
+ * Copyright (c) 2012-2015 JoeBilly 
  * Copyright (c) 2010-2012 Jules Blok
  *
  * TeamSpeak 3 helpers functions

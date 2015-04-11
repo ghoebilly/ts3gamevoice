@@ -186,6 +186,9 @@
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalDependencies>setupapi.lib;hid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>COPY /Y "$(SolutionDir)\gamevoice.txt" "$(TargetDir)"</Command>
+    </PreBuildEvent>
     <PostBuildEvent>
       <Command>COPY /Y "$(TargetPath)" "C:\Program Files (x86)\TeamSpeak 3 Client\plugins\"</Command>
     </PostBuildEvent>
@@ -211,12 +214,12 @@
       </DataExecutionPrevention>
       <AdditionalDependencies>setupapi.lib;hid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>COPY /Y "$(TargetPath)" "C:\Program Files\TeamSpeak 3 Client\plugins\"</Command>
-    </PostBuildEvent>
     <PreBuildEvent>
       <Command>COPY /Y "$(SolutionDir)\gamevoice.txt" "$(TargetDir)"</Command>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>COPY /Y "$(TargetPath)" "C:\Program Files\TeamSpeak 3 Client\plugins\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\clientlib_publicdefinitions.h" />
