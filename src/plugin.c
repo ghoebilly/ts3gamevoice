@@ -243,7 +243,7 @@ const char* ts3plugin_author() {
 /* Plugin description */
 const char* ts3plugin_description() {
 	/* If you want to use wchar_t, see ts3plugin_name() on how to use */
-	return "This plugin provides support for the Microsoft Sidewinder Game Voice USB device in TeamSpeak 3 Client.\nNo additional software is required.\n\nIf the plugin failed to initialize (red), it may be because the Game Voice hardware cannot be found on the system.\nCheck logs in Tools\\Client Log or Ctrl+L.\n\nhttps://sourceforge.net/projects/ts3gamevoice/";
+	return "This plugin provides support for the Microsoft Sidewinder Game Voice USB device.\nNo additional software is required.\n\nIf the plugin failed to initialize (red), it may be because the Game Voice hardware cannot be found on the system.\nCheck logs in Tools\\Client Log or Ctrl+L.\n\nhttps://sourceforge.net/projects/ts3gamevoice/";
 }
 
 /* Set TeamSpeak 3 callback functions */
