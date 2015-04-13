@@ -89,10 +89,8 @@ static void detachDevice()
 		workerThreadState = terminated;
 
 		// Abort the worker thread
-		//TerminateThread(the_usbWorkerThread, 0);
 		WaitForSingleObject(usbWorkerThreadHandle, 5000);
 		CloseHandle(usbWorkerThreadHandle);
-		//the_usbWorkerThread->Abort();
 
 		OutputDebugString("Closing handles...");
 
@@ -129,7 +127,7 @@ static void initUsbHidCommunication()
 	featureBuffer = (unsigned char *) malloc(65);
 
 	// Fill the outputBuffer with 0xFF (apparently this causes less EMI and power
-	// consumption)				
+	// consumption)
 	for (loopCounter = 0; loopCounter < 65; loopCounter++) outputBuffer[loopCounter] = 0xFF;
 
 	// Clear the worker thread flag
@@ -140,7 +138,10 @@ static void initUsbHidCommunication()
 static void finalizeUsbHidCommunication()
 {
 	// Cleanly detach ourselves from the USB device
-	detachDevice();
+	detachDevice();	
+	free(outputBuffer);
+	free(inputBuffer);
+	free(featureBuffer);
 } // END ~usbHidCommunication method
 
 
@@ -154,16 +155,14 @@ static void finalizeUsbHidCommunication()
 
 static DWORD WINAPI usbWorkerThread(LPVOID pData)
 {
-/*void usbWorkerThread()
-{*/
 	// Variables for tracking how much is read and written
 	DWORD bytesRead = 0;
 	DWORD bytesWritten = 0;
 	LPSTR errorText = NULL;
 
 	// for DEBUG, REMOVE!
-	int loopCounter = 0;
-	char debugOutput[35];
+	//int loopCounter = 0;
+	//char debugOutput[35];
 
 	while(workerThreadState != terminated)
 	{
@@ -267,25 +266,25 @@ static DWORD WINAPI usbWorkerThread(LPVOID pData)
 			{
 				OutputDebugString("usbWorkerThread: /!\\ Failed to send the packet to the USB device");
 
-				snprintf(debugOutput, 35, "usbWorkerThread:bytesWritten:%d", bytesWritten);
-				OutputDebugString(debugOutput);
+				//snprintf(debugOutput, 35, "usbWorkerThread:bytesWritten:%d", bytesWritten);
+				//OutputDebugString(debugOutput);
 
-				FormatMessage(
-					// use system message tables to retrieve error text
-					FORMAT_MESSAGE_FROM_SYSTEM
-					// allocate buffer on local heap for error text
-					|FORMAT_MESSAGE_ALLOCATE_BUFFER
-					// Important! will fail otherwise, since we're not 
-					// (and CANNOT) pass insertion parameters
-					|FORMAT_MESSAGE_IGNORE_INSERTS,  
-					NULL,    // unused with FORMAT_MESSAGE_FROM_SYSTEM
-					GetLastError(),
-					MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-					(LPSTR)&errorText,  // output 
-					0, // minimum size for output buffer
-					NULL);   // arguments - see note 
+				//FormatMessage(
+				//	// use system message tables to retrieve error text
+				//	FORMAT_MESSAGE_FROM_SYSTEM
+				//	// allocate buffer on local heap for error text
+				//	|FORMAT_MESSAGE_ALLOCATE_BUFFER
+				//	// Important! will fail otherwise, since we're not 
+				//	// (and CANNOT) pass insertion parameters
+				//	|FORMAT_MESSAGE_IGNORE_INSERTS,  
+				//	NULL,    // unused with FORMAT_MESSAGE_FROM_SYSTEM
+				//	GetLastError(),
+				//	MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				//	(LPSTR)&errorText,  // output 
+				//	0, // minimum size for output buffer
+				//	NULL);   // arguments - see note 
 
-				OutputDebugString(errorText);
+				//OutputDebugString(errorText);
 			}
 
 			// Set the worker thread state to idle
@@ -424,12 +423,12 @@ static void findDevice(int usbVid, int usbPid)
 						GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
 					ErrorStatusReport = GetLastError();
 
-					// Check to see if we opened the read and write handles successfully
+					// Check to see if we opened the handles successfully
 					if ((ErrorStatusWrite == ERROR_SUCCESS) && (ErrorStatusRead == ERROR_SUCCESS) && (ErrorStatusFeature == ERROR_SUCCESS) && (ErrorStatusReport == ERROR_SUCCESS))
 					{
 						OutputDebugString("findDevice: Success ! Device is now attached");
 
-						// File handles opened successfully, device is now attached
+						// Handles opened successfully, device is now attached
 						deviceAttached = TRUE;
 						deviceAttachedButBroken = FALSE;
 
@@ -552,7 +551,6 @@ static void detachBrokenDevice()
 
 		// Abort the worker thread
 		CloseHandle(usbWorkerThreadHandle);
-		//the_usbWorkerThread->Abort();
 
 		// Close the device file handles
 		CloseHandle(WriteHandle);
@@ -650,7 +648,7 @@ static BOOL forceFeature(int usbCommandId)
 
 		// Map the managed data array from the class to an unmanaged
 		// pointer for the ReadFile function
-		unsigned char * unmanagedInputBuffer = &inputBuffer[0];
+		// unsigned char * unmanagedInputBuffer = &inputBuffer[0];
 
 		// Get the packet from the USB device
 		// ReadFile(FeatureHandle, unmanagedInputBuffer, 65, &bytesRead, 0);
@@ -667,8 +665,9 @@ static BOOL forceFeature(int usbCommandId)
 // The following method gets a report request from the USB device (the device must have been found first!)
 static byte getInputReport()
 {
-	// Variables for tracking how much is read and written
+	// Variables for tracking how much is read
 	DWORD bytesRead = 0;
+	byte returnValue= NULL;
 	unsigned char *reportBuffer = (unsigned char *)malloc(65);
 	unsigned char * unmanagedReportBuffer = &reportBuffer[0];
 	char strCommandId[40];
@@ -683,9 +682,9 @@ static byte getInputReport()
 	// The first byte of the report buffer should be set to zero (this is not
 	// sent to the USB device)
 	reportBuffer[0] = 0;
-	reportBuffer[1] = 0;
+	reportBuffer[1] = 0xFF;
 
-	// Get the packet from the USB device
+	// Get the input report from the USB device
 	OutputDebugString("getInputReport: Get input report from the USB device");
 	if (HidD_GetInputReport(FeatureHandle, unmanagedReportBuffer, 65))
 	{
@@ -693,18 +692,19 @@ static byte getInputReport()
 		OutputDebugString(strCommandId);
 
 		// Return with success
-		return reportBuffer[1];
+		returnValue = reportBuffer[1];
 	}
 	else
 		OutputDebugString("getInputReport: /!\\ Failed to get input report to the USB device");
 
-	return NULL;
+	free(reportBuffer);
+	return returnValue;
 }
 
 // The following method gets a feature request from the USB device (the device must have been found first!)
 static byte getFeature()
 {
-	// Variables for tracking how much is read and written
+	// Variables for tracking how much is read
 	DWORD bytesRead = 0;				
 	unsigned char * unmanagedFeatureBuffer = &featureBuffer[0];				
 	char strCommandId[40];
@@ -719,7 +719,7 @@ static byte getFeature()
 	// The first byte of the feature buffers should be set to zero (this is not
 	// sent to the USB device)
 	featureBuffer[0] = 0;
-	featureBuffer[1] = 0;
+	featureBuffer[1] = 0xFF;
 
 	// Get the packet from the USB device
 	OutputDebugString("getFeature: Get feature from the USB device");
@@ -749,7 +749,7 @@ static BOOL sendFeature(int usbCommandId)
 		return FALSE;
 	}
 
-	OutputDebugString("sendFeature");
+	//OutputDebugString("sendFeature");
 
 	// Wait for the worker thread to be idle before continuing
 	if (waitForTheWorkerThreadToBeIdle(TRUE))
@@ -790,7 +790,7 @@ static BOOL sendCommandWriteOnly(int usbCommandId)
 		return FALSE;
 	}
 
-	OutputDebugString("sendCommandWriteOnly");
+	//OutputDebugString("sendCommandWriteOnly");
 
 	// Wait for the worker thread to be idle before continuing
 	if (waitForTheWorkerThreadToBeIdle(TRUE))
@@ -828,7 +828,7 @@ static BOOL sendCommandWriteRead(int usbCommandId)
 		return FALSE;
 	}
 
-	OutputDebugString("sendCommandWriteRead");
+	//OutputDebugString("sendCommandWriteRead");
 
 	// Wait for the worker thread to be idle before continuing
 	if (waitForTheWorkerThreadToBeIdle(TRUE))
@@ -863,7 +863,7 @@ static BOOL receiveCommand()
 		return FALSE;
 	}
 
-	//OutputDebugString("sendUsbCommandReadOnly");
+	//OutputDebugString("receiveCommand");
 
 	// Wait for the worker thread to be idle before continuing
 	if (waitForTheWorkerThreadToBeIdle(TRUE))
@@ -919,13 +919,9 @@ static byte readFromTheInputBuffer(int byteNumber)
 	// Do not allow reading from bytes beyond the array size, just return zero
 	if (byteNumber > 64) return -1;
 
-	//OutputDebugString("readFromTheInputBuffer in");
-
 	// Ensure that the worker thread has finished reading before
 	// grabbing the data from the input buffer.
 	waitForTheWorkerThreadToBeIdle(FALSE);
-
-	//OutputDebugString("readFromTheInputBuffer out");
 
 	return inputBuffer[byteNumber];
 } // END readFromTheInputBuffer method
@@ -942,13 +938,9 @@ static byte readFromTheFeatureBuffer(int byteNumber)
 	// Do not allow reading from bytes beyond the array size, just return zero
 	if (byteNumber > 64) return -1;
 
-	//OutputDebugString("readFromTheFeatureBuffer in");
-
 	// Ensure that the worker thread has finished reading before
 	// grabbing the data from the input buffer.
 	waitForTheWorkerThreadToBeIdle(FALSE);
-
-	//OutputDebugString("readFromTheFeatureBuffer out");
 
 	return featureBuffer[byteNumber];
 } // END readFromTheFeatureBuffer method

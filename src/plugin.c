@@ -123,7 +123,7 @@ DWORD WINAPI GameVoiceThread(LPVOID pData)
 		if (gameVoiceFunctions.waitForExternalCommand())
 		{
 			inputValue = gameVoiceFunctions.readCommand();
-			snprintf(debugOutput, 50, "GameVoiceThread:readFromTheInputBuffer:%d", inputValue);
+			snprintf(debugOutput, 50, "GameVoiceThread:readCommand:%d", inputValue);
 			OutputDebugString(debugOutput);
 			ts3Functions.logMessage(debugOutput, LogLevel_DEBUG, "GameVoice Plugin", 0);
 
@@ -133,21 +133,10 @@ DWORD WINAPI GameVoiceThread(LPVOID pData)
 			OutputDebugString(debugOutput);
 			//snprintf(debugOutput, 50, "GameVoiceThread:previousCommandReceived:%d", gameVoiceFunctions.getPreviousCommandReceived());
 			//OutputDebugString(debugOutput);
-			//snprintf(debugOutput, 40, "previousInputValue:%d", previousInputValue);
-			//OutputDebugString(debugOutput);
-			//snprintf(debugOutput, 40, "previousState:%d", gameVoiceFunctions.getPreviousState());
 
 			//  Ignores impossible action
 			if (inputValue == 63 || inputValue >= 205)
 				continue;
-
-			// Ignore feature commands
-			//featureValue = gameVoiceFunctions.getLastFeatureSent();
-			//snprintf(debugOutput, 50, "GameVoiceThread:featureValue:%d", featureValue);
-			//OutputDebugString(debugOutput);
-			//gameVoiceFunctions.writeToTheFeatureBuffer(1,0xFF);
-			/*if (inputValue == featureValue)
-				continue;*/
 
 			// Microphone button
 			if (gameVoiceFunctions.isButtonActive(MUTE))

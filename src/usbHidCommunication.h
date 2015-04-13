@@ -41,25 +41,6 @@ enum eWorkerThreadState {idle, read, writeRead, setFeature, write, terminated};
 
 typedef struct UsbHidCommunication
 {
-	//BOOL deviceAttached;
-	//BOOL deviceAttachedButBroken;
-
-	//HANDLE WriteHandle;
-	//HANDLE ReadHandle;
-	//HANDLE FeatureHandle;			
-
-	//// Private variables to store the input and output
-	//// buffers for USB communication
-	//unsigned char *outputBuffer;
-	//unsigned char *inputBuffer;
-	//unsigned char *featureBuffer;
-
-	//// Worker thread definitions
-	//HANDLE usbWorkerThreadHandle;
-
-	//// State for the worker thread
-	//enum eWorkerThreadState workerThreadState;
-
 // This public method detaches the USB device and forces the 
 // worker threads to cancel IO and abort if required.
 // This is used when we're done communicating with the device

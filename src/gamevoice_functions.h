@@ -97,15 +97,12 @@ typedef struct GameVoiceFunctions
 	/* Waits for an external command from the device.
 	 * An external command is a command different from the last feature sent.
 	 */
-	// test
 	BOOL (*waitForExternalCommand)();
 
 	// Feature handling
 	/* Forces a feature to the device (sent immediately)
 	 */
 	BOOL (*forceFeature)(size_t command);
-	// Reads the last feature received from the device
-	// void (*readFeature)();
 	/* Sends a feature to the device when its available
 	 */
 	BOOL (*sendFeature)(size_t command);

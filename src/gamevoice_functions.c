@@ -125,6 +125,8 @@ static BOOL isButtonInactive(size_t command)
 //	return (lastFeatureSent != command) && !(previousCommandReceived & command) && (lastCommandReceived & command);
 //}
 
+/* Loads the device : find it and attach to it
+*/
 static BOOL loadDevice()
 {
 	usbHidCommunicator = CreateUsbHidCommunicator();
@@ -134,6 +136,8 @@ static BOOL loadDevice()
 	return usbHidCommunicator.isDeviceAttached();
 }
 
+/* Resets the device to its base state.
+*/
 static void resetDevice()
 {
 	effectiveCommand = NULL;
@@ -145,12 +149,16 @@ static void resetDevice()
 	usbHidCommunicator.forceFeature(NONE);
 }
 
+/* Unload the device : reset and detach it
+*/
 static void unloadDevice()
 {
 	resetDevice();
 	usbHidCommunicator.finalizeUsbHidCommunication();
 }
 
+/* Runs a clockwise led chase effect by activating & deactivating all device buttons sequentially
+*/
 static void runDeviceLedChase()
 {
 	sendFeature(CHANNEL_1);
@@ -199,11 +207,15 @@ static void blinkDevice()
 	forceFeature(previousState);
 }
 
+/* Reads the last command received from the device
+*/
 static byte readCommand()
 {
 	return usbHidCommunicator.readFromTheInputBuffer(1);
 }
 
+/* Waits for a command from the device.
+*/
 static BOOL waitForCommand()
 {
 	char debugOutput[65];
@@ -235,6 +247,9 @@ static BOOL waitForCommand()
 	return TRUE;
 }
 
+/* Waits for an external command from the device.
+* An external command is a command different from the last feature sent.
+*/
 static BOOL waitForExternalCommand()
 {
 	BOOL result;
@@ -246,11 +261,13 @@ static BOOL waitForExternalCommand()
 		//snprintf(debugOutput, 65, "waitForExternalCommand:featureSent:%d", featureSent);
 		//OutputDebugString(debugOutput);
 		Sleep(5);
-	} while (result && lastFeatureSent == lastCommandReceived);
+	} while (result && featureSent);
 
 	return result;
 }
 
+/* Forces a feature to the device (sent immediately)
+*/
 static BOOL forceFeature(size_t command)
 {
 	featureSent = usbHidCommunicator.forceFeature(command);
@@ -262,6 +279,8 @@ static BOOL forceFeature(size_t command)
 	return TRUE;
 }
 
+/* Sends a feature to the device when its available
+*/
 static BOOL sendFeature(size_t command)
 {
 	featureSent = usbHidCommunicator.sendFeature(command);
@@ -273,6 +292,8 @@ static BOOL sendFeature(size_t command)
 	return TRUE;
 }
 
+/* Activate the specified button
+*/
 static BOOL activateButton(size_t command)
 {
 	byte currentFeature;
@@ -285,6 +306,8 @@ static BOOL activateButton(size_t command)
 	return forceFeature(currentFeature | command);
 }
 
+/* Deactivate the specified button
+*/
 static BOOL deactivateButton(size_t command)
 {
 	byte currentFeature;
