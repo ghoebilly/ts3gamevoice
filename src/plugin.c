@@ -91,12 +91,6 @@ static int wcharToUtf8(const wchar_t* str, char** result) {
 * NOTE: Never let threads sleep longer than PLUGINTHREAD_TIMEOUT per iteration,
 * the shutdown procedure will not wait that long for the thread to exit.
 */
-
-BOOL isNewInput(byte inputValue, int buttonId)
-{
-	return !(previousInputValue & buttonId) && (inputValue & buttonId);
-}
-
 void OpenWeb(LPCSTR url)
 {
 	//char command[150];
@@ -120,7 +114,8 @@ DWORD WINAPI GameVoiceThread(LPVOID pData)
 	// While the plugin is running
 	while (pluginRunning)
 	{
-		if (gameVoiceFunctions.waitForExternalCommand())
+		// Wait here (lock) for a command from the device
+		if (gameVoiceFunctions.waitForExternalCommand() && pluginRunning)
 		{
 			inputValue = gameVoiceFunctions.readCommand();
 			snprintf(debugOutput, 50, "GameVoiceThread:readCommand:%d", inputValue);
@@ -165,8 +160,8 @@ DWORD WINAPI GameVoiceThread(LPVOID pData)
 					previousInputValue = inputValue;
 				}
 			}
+			Sleep(5);
 		}
-		Sleep(5);
 	}
 
 	ts3Functions.logMessage("Plugin thread exited", LogLevel_DEBUG, "GameVoice Plugin", 0);
@@ -248,7 +243,7 @@ const char* ts3plugin_author() {
 /* Plugin description */
 const char* ts3plugin_description() {
 	/* If you want to use wchar_t, see ts3plugin_name() on how to use */
-	return "This plugin allows you to use the Microsoft Sidewinder Game Voice USB device to control TeamSpeak 3.\n\nIf the plugin failed to initialize (red), it may be because the Game Voice hardware cannot be found on the system.\nCheck logs in Tools\\Client Log or Ctrl+L.";
+	return "This plugin allows you to use the Microsoft Sidewinder Game Voice USB device to control TeamSpeak 3.\nNo additional software is required.\n\nIf the plugin failed to initialize (red), it may be because the Game Voice hardware cannot be found on the system.\nCheck logs in Tools\\Client Log or Ctrl+L.\n\nhttps://sourceforge.net/projects/ts3gamevoice/";
 }
 
 /* Set TeamSpeak 3 callback functions */
@@ -268,7 +263,7 @@ int ts3plugin_init() {
 
 	/* Your plugin init code here */
 	printf("PLUGIN: init\n");
-	//scHandlerID = ts3Functions.getCurrentServerConnectionHandlerID();
+	scHandlerID = ts3Functions.getCurrentServerConnectionHandlerID();
 
 	ts3Functions.logMessage("Plugin started...", LogLevel_INFO, "GameVoice Plugin", 0);
 

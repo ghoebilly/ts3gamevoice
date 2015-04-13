@@ -81,8 +81,8 @@
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkIncremental>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">bin\win32\</OutDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">bin\x64\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">obj\$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">obj\$(Configuration)\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
     <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
@@ -134,7 +134,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalDependencies>setupapi.lib;hid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
+    <PostBuildEvent Condition="exists('C:\Program Files (x86)\TeamSpeak 3 Client\plugins\')">
       <Command>COPY /Y "$(TargetPath)" "C:\Program Files (x86)\TeamSpeak 3 Client\plugins\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -158,7 +158,7 @@
       </DataExecutionPrevention>
       <AdditionalDependencies>setupapi.lib;hid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
+    <PostBuildEvent Condition="exists('C:\Program Files\TeamSpeak 3 Client\plugins')">
       <Command>COPY /Y "$(TargetPath)" "C:\Program Files\TeamSpeak 3 Client\plugins"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -186,10 +186,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalDependencies>setupapi.lib;hid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PreBuildEvent>
-      <Command>COPY /Y "$(SolutionDir)\gamevoice.txt" "$(TargetDir)"</Command>
-    </PreBuildEvent>
-    <PostBuildEvent>
+    <PostBuildEvent Condition="exists('C:\Program Files (x86)\TeamSpeak 3 Client\plugins\')">
       <Command>COPY /Y "$(TargetPath)" "C:\Program Files (x86)\TeamSpeak 3 Client\plugins\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -213,11 +210,9 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <AdditionalDependencies>setupapi.lib;hid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <Version>1.3</Version>
     </Link>
-    <PreBuildEvent>
-      <Command>COPY /Y "$(SolutionDir)\gamevoice.txt" "$(TargetDir)"</Command>
-    </PreBuildEvent>
-    <PostBuildEvent>
+    <PostBuildEvent Condition="exists('C:\Program Files\TeamSpeak 3 Client\plugins\')">
       <Command>COPY /Y "$(TargetPath)" "C:\Program Files\TeamSpeak 3 Client\plugins\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -243,32 +238,31 @@
     <None Include="gamevoice.txt">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="icons\1.png">
-      <FileType>Document</FileType>
+    <None Include="gamevoice\1.png">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="icons\2.png">
-      <DeploymentContent>true</DeploymentContent>
-      <FileType>Document</FileType>
-    </None>
-    <None Include="icons\3.png">
+    <None Include="gamevoice\2.png">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="icons\4.png">
+    <None Include="gamevoice\3.png">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="icons\gv.png">
+    <None Include="gamevoice\4.png">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="icons\sf.png">
+    <None Include="gamevoice\gv.png">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="icons\supp.png">
+    <None Include="gamevoice\sf.png">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="package.ini">
+    <None Include="gamevoice\supp.png">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="package_x64.ini">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="package_x86.ini" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\gamevoice_functions.c" />
@@ -281,4 +275,55 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <!-- Packaging -->
+  <Import Project=".build\MSBuild.Community.Tasks.Targets" />
+  <ItemGroup>
+    <Content Include="gamevoice.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="gamevoice\gv.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="gamevoice\sf.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="gamevoice\supp.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="package_x64.ini" Condition="'$(PlatformTarget)'=='x64'">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="package_x86.ini" Condition="'$(PlatformTarget)'=='x86'">      
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <Target Name="AfterBuild" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <PackageDir>Releases\package</PackageDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <!-- 
+      Add all *.dll files found in the root of the "bin" folder as link files.
+      - Use Files="@(Content);@(Link)" in the zip target the include both content files as build output in the zip content. 
+      - Using the "@(Content);@(Link)" notation, will merge ItemGroup Content and ItemGroup Link into one property. 
+      - The ".\" before the "bin" folder name in the Include, results in a zip package containing the bin folder.
+      - If you do not want to include the "bin" folder itself but only the files, use "bin\*.dll".
+      - If you want to include subfolders use ".\bin\**\*.dll"
+   -->
+      <Plugin Include="$(TargetDir)**\*.png" />
+      <Plugin Include="$(TargetDir)*.dll" />
+      <Plugin Include="$(TargetDir)*.txt" />
+      <Ini Include="$(TargetDir)package_$(PlatformTarget).ini" />
+    </ItemGroup>
+    <RemoveDir Directories="$(PackageDir)" />
+    <Copy SourceFiles="@(Plugin)" DestinationFiles="@(Plugin->'$(PackageDir)\plugins\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(Ini)" DestinationFiles="$(PackageDir)\package.ini" />
+    <ItemGroup>
+      <Package Include="$(PackageDir)\plugins\**\*.png" />
+      <Package Include="$(PackageDir)\plugins\*.dll" />
+      <Package Include="$(PackageDir)\plugins\*.txt" />
+      <Package Include="$(PackageDir)\package.ini" />
+    </ItemGroup>
+    <Zip Files="@(Package)" WorkingDirectory="$(PackageDir)" ZipFileName="Releases\$(TargetName).ts3_plugin" ZipLevel="9" />
+  </Target>
 </Project>
