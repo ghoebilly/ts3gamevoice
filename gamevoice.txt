@@ -10,6 +10,9 @@
    ! Important - Take note!
 ===============================================================================
 
+=== 1.4 18 Apr 2015
++ Synchronize Device and TeamSpeak client input mute upon plugin initialization
+
 === 1.3 13 Apr 2015
 + Device and TeamSpeak buttons synchronization (and better device status handling)
 + Device now blink its channels buttons on disconnection

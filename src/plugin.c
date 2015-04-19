@@ -109,6 +109,9 @@ DWORD WINAPI GameVoiceThread(LPVOID pData)
 	ts3Functions.logMessage("Game Voice thread attached...", LogLevel_DEBUG, "GameVoice Plugin", 0);
 	gameVoiceFunctions.runDeviceLedChase();
 
+	/* Checks if the input mute button is active to set the client input mute */
+	if (gameVoiceFunctions.isButtonActive(MUTE))
+		setInputMute(scHandlerID, TRUE);
 
 	ts3Functions.logMessage("Waiting for packets from the USB device...", LogLevel_DEBUG, "GameVoice Plugin", 0);
 	// While the plugin is running
@@ -142,7 +145,7 @@ DWORD WINAPI GameVoiceThread(LPVOID pData)
 
 				// Sound button
 				if (gameVoiceFunctions.isButtonActive(COMMAND))
-						setOutputMute(scHandlerID, TRUE); // on
+					setOutputMute(scHandlerID, TRUE); // on
 				else
 				{
 					setOutputMute(scHandlerID, FALSE); // off
@@ -226,7 +229,7 @@ const char* ts3plugin_name() {
 
 /* Plugin version */
 const char* ts3plugin_version() {
-	return "1.3";
+	return "1.4";
 }
 
 /* Plugin API version. Must be the same as the clients API major version, else the plugin fails to load. */
@@ -842,8 +845,7 @@ void ts3plugin_onConnectStatusChangeEvent(uint64 serverConnectionHandlerID, int 
 	{
 		gameVoiceFunctions.blinkDevice();
 	}
-
-	if (newStatus == STATUS_CONNECTION_ESTABLISHED) {  /* connection established and we have client and channels available */
+	else if (newStatus == STATUS_CONNECTION_ESTABLISHED) {  /* connection established and we have client and channels available */
 		char* s;
 		char msg[1024];
 		anyID myID;
@@ -1017,7 +1019,7 @@ int ts3plugin_onTextMessageEvent(uint64 serverConnectionHandlerID, anyID targetM
 			return 0;
 		}
 		if(fromID != myID) {  /* Don't reply when source is own client */
-			if(ts3Functions.requestSendPrivateTextMsg(serverConnectionHandlerID, "Text message back!", fromID, NULL) != ERROR_ok) {
+			if (ts3Functions.requestSendPrivateTextMsg(serverConnectionHandlerID, "Text message back!", fromID, NULL) != ERROR_ok) {
 				ts3Functions.logMessage("Error requesting send text message", LogLevel_ERROR, "Plugin", serverConnectionHandlerID);
 			}
 		}
@@ -1095,7 +1097,7 @@ void ts3plugin_onUserLoggingMessageEvent(const char* logMessage, int logLevel, c
 
 void ts3plugin_onClientBanFromServerEvent(uint64 serverConnectionHandlerID, anyID clientID, uint64 oldChannelID, uint64 newChannelID, int visibility, anyID kickerID, const char* kickerName, const char* kickerUniqueIdentifier, uint64 time, const char* kickMessage) {
 }
- 
+
 int ts3plugin_onClientPokeEvent(uint64 serverConnectionHandlerID, anyID fromClientID, const char* pokerName, const char* pokerUniqueIdentity, const char* message, int ffIgnored) {
 	anyID myID;
 
