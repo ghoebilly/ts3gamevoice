@@ -57,16 +57,14 @@ typedef struct GameVoiceFunctions
 	 * A button is activated if its a new command and different from the last feature sent.
 	 */
 	BOOL (*isButtonActivated)(size_t command);
-	/* Determines whether the specified button is active after a waitForcommand or waitForExternalCommand.
-	 * A button is active if in the last command.
+	/* Determines whether the specified button is active on the device.
 	 */
 	BOOL (*isButtonActive)(size_t command);
 	/* Determines whether the specified button has been deactivated during a waitForcommand or waitForExternalCommand.
 	 * A button is deactivated if its a new command and different from the last feature sent.
 	 */
 	BOOL (*isButtonDeactivated)(size_t command);
-	/* Determines whether the specified button is inactive after a waitForcommand or waitForExternalCommand.
-	 * A button is inactive if not in the last command.
+	/* Determines whether the specified button is inactive on the device.
 	 */
 	BOOL (*isButtonInactive)(size_t command);
 

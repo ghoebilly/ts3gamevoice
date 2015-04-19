@@ -88,12 +88,11 @@ static BOOL isButtonActivated(size_t command)
 	return !(lastFeatureSent & command) && (effectiveCommand & command) && (effectiveCommand & ACTIVATED);
 }
 
-/* Determines whether the specified button is active after a waitForcommand or waitForExternalCommand.
- * A button is active if in the last command.
- */
+/* Determines whether the specified button is active on the device.
+  */
 static BOOL isButtonActive(size_t command)
 {
-	return (lastCommandReceived & command);
+	return (usbHidCommunicator.getInputReport() & command);
 }
 
 /* Determines whether the specified button has been deactivated during a waitForcommand or waitForExternalCommand.
@@ -104,12 +103,11 @@ static BOOL isButtonDeactivated(size_t command)
 	return !(lastFeatureSent & command) && (effectiveCommand & command) && (effectiveCommand & DEACTIVATED);
 }
 
-/* Determines whether the specified button is inactive after a waitForcommand or waitForExternalCommand.
- * A button is inactive if not in the last command.
+/* Determines whether the specified button is inactive on the device.
  */
 static BOOL isButtonInactive(size_t command)
 {
-	return !(lastCommandReceived & command);
+	return !(usbHidCommunicator.getInputReport() & command);
 }
 
 /* Determines whether the specified value is a new user command and match the specified command.
