@@ -1,14 +1,20 @@
 ===============================================================================
-		   TeamSpeak 3 SideWinder Game Voice Plugin
-                       Copyright 2012-2014 JoeBilly
-		 https://sourceforge.net/projects/ts3gamevoice/
-			joebilly@users.sourceforge.net
+ TeamSpeak 3 SideWinder Game Voice Plugin
+ Copyright 2012-2019 JoeBilly
+ https://github.com/ghoebilly/ts3gamevoice
 ===============================================================================
    + Added feature or noticeable improvement
    - Bug fix or something removed
    * Changed or Information
    ! Important - Take note!
 ===============================================================================
+
+=== 1.4.23 18 Aug 2019
+ + Updated for API 23
+ + Added README.md
+ * From now on, plugin version last digit will be the teamspeak API version
+ * Project cloned to github from https://sourceforge.net/p/ts3gamevoice
+ * Changed license file COPYING.txt to LICENSE.md
 
 === 1.4 18 Apr 2015
 + Synchronize Device and TeamSpeak client input mute upon plugin initialization

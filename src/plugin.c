@@ -24,7 +24,7 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef _WIN32
+#if defined(WIN32) || defined(__WIN32__) || defined(_WIN32)
 #pragma warning (disable : 4100)  /* Disable Unreferenced parameter warning */
 #endif
 
@@ -57,7 +57,7 @@ static struct GameVoiceFunctions gameVoiceFunctions;
 #define _strcpy(dest, destSize, src) { strncpy(dest, src, destSize-1); (dest)[destSize-1] = '\0'; }
 #endif
 
-#define PLUGIN_API_VERSION 20
+#define PLUGIN_API_VERSION 23
 
 #define PATH_BUFSIZE 512
 #define COMMAND_BUFSIZE 128
@@ -229,7 +229,7 @@ const char* ts3plugin_name() {
 
 /* Plugin version */
 const char* ts3plugin_version() {
-	return "1.4";
+	return "1.4.23";
 }
 
 /* Plugin API version. Must be the same as the clients API major version, else the plugin fails to load. */
@@ -384,7 +384,7 @@ int ts3plugin_processCommand(uint64 serverConnectionHandlerID, const char* comma
 	char buf[COMMAND_BUFSIZE];
 	char *s, *param1 = NULL, *param2 = NULL;
 	int i = 0;
-	enum { CMD_NONE = 0, CMD_JOIN, CMD_COMMAND, CMD_SERVERINFO, CMD_CHANNELINFO, CMD_AVATAR, CMD_ENABLEMENU, CMD_SUBSCRIBE, CMD_UNSUBSCRIBE, CMD_SUBSCRIBEALL, CMD_UNSUBSCRIBEALL } cmd = CMD_NONE;
+	enum { CMD_NONE = 0, CMD_JOIN, CMD_COMMAND, CMD_SERVERINFO, CMD_CHANNELINFO, CMD_AVATAR, CMD_ENABLEMENU, CMD_SUBSCRIBE, CMD_UNSUBSCRIBE, CMD_SUBSCRIBEALL, CMD_UNSUBSCRIBEALL, CMD_BOOKMARKSLIST } cmd = CMD_NONE;
 #ifdef _WIN32
 	char* context = NULL;
 #endif
@@ -428,9 +428,10 @@ int ts3plugin_processCommand(uint64 serverConnectionHandlerID, const char* comma
 			}
 			else if (!strcmp(s, "unsubscribeall")) {
 				cmd = CMD_UNSUBSCRIBEALL;
-			}
-		}
-		else if (i == 1) {
+            } else if (!strcmp(s, "bookmarkslist")) {
+                cmd = CMD_BOOKMARKSLIST;
+            }
+		} else if(i == 1) {
 			param1 = s;
 		}
 		else {
@@ -1267,15 +1268,15 @@ void ts3plugin_onClientNamefromDBIDEvent(uint64 serverConnectionHandlerID, const
 void ts3plugin_onComplainListEvent(uint64 serverConnectionHandlerID, uint64 targetClientDatabaseID, const char* targetClientNickName, uint64 fromClientDatabaseID, const char* fromClientNickName, const char* complainReason, uint64 timestamp) {
 }
 
-void ts3plugin_onBanListEvent(uint64 serverConnectionHandlerID, uint64 banid, const char* ip, const char* name, const char* uid, uint64 creationTime, uint64 durationTime, const char* invokerName,
-	uint64 invokercldbid, const char* invokeruid, const char* reason, int numberOfEnforcements, const char* lastNickName) {
+void ts3plugin_onBanListEvent(uint64 serverConnectionHandlerID, uint64 banid, const char* ip, const char* name, const char* uid, const char* mytsid, uint64 creationTime, uint64 durationTime, const char* invokerName,
+							  uint64 invokercldbid, const char* invokeruid, const char* reason, int numberOfEnforcements, const char* lastNickName) {
 }
 
 void ts3plugin_onClientServerQueryLoginPasswordEvent(uint64 serverConnectionHandlerID, const char* loginPassword) {
 }
 
-void ts3plugin_onPluginCommandEvent(uint64 serverConnectionHandlerID, const char* pluginName, const char* pluginCommand) {
-	printf("ON PLUGIN COMMAND: %s %s\n", pluginName, pluginCommand);
+void ts3plugin_onPluginCommandEvent(uint64 serverConnectionHandlerID, const char* pluginName, const char* pluginCommand, anyID invokerClientID, const char* invokerName, const char* invokerUniqueIdentity) {
+	printf("ON PLUGIN COMMAND: %s %s %d %s %s\n", pluginName, pluginCommand, invokerClientID, invokerName, invokerUniqueIdentity);
 }
 
 void ts3plugin_onIncomingClientQueryEvent(uint64 serverConnectionHandlerID, const char* commandText) {
@@ -1380,6 +1381,24 @@ void ts3plugin_onHotkeyEvent(const char* keyword) {
 /* Called when recording a hotkey has finished after calling ts3Functions.requestHotkeyInputDialog */
 void ts3plugin_onHotkeyRecordedEvent(const char* keyword, const char* key) {
 }
+
+// This function receives your key Identifier you send to notifyKeyEvent and should return
+// the friendly device name of the device this hotkey originates from. Used for display in UI.
+const char* ts3plugin_keyDeviceName(const char* keyIdentifier) {
+	return NULL;
+}
+
+// This function translates the given key identifier to a friendly key name for display in the UI
+const char* ts3plugin_displayKeyText(const char* keyIdentifier) {
+	return NULL;
+}
+
+// This is used internally as a prefix for hotkeys so we can store them without collisions.
+// Should be unique across plugins.
+const char* ts3plugin_keyPrefix() {
+	return NULL;
+}
+
 /* Called when client custom nickname changed */
 void ts3plugin_onClientDisplayNameChanged(uint64 serverConnectionHandlerID, anyID clientID, const char* displayName, const char* uniqueClientIdentifier) {
 }
