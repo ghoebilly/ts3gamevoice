@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2012-2015 JoeBilly
+ * Copyright (c) 2012-2019 JoeBilly
  *
  * Game voice helper functions
  * gamevoice_functions.c
  * JoeBilly (joebilly@users.sourceforge.net)
- * https://sourceforge.net/projects/ts3gamevoice/
+ * https://github.com/ghoebilly/ts3gamevoice
  *
  *  This file is part of TeamSpeak 3 SideWinder Game Voice Plugin.
  *
@@ -155,56 +155,6 @@ static void unloadDevice()
 	usbHidCommunicator.finalizeUsbHidCommunication();
 }
 
-/* Runs a clockwise led chase effect by activating & deactivating all device buttons sequentially
-*/
-static void runDeviceLedChase()
-{
-	sendFeature(CHANNEL_1);
-	Sleep(75);
-	sendFeature(CHANNEL_2);
-	Sleep(75);
-	sendFeature(CHANNEL_3);
-	Sleep(75);
-	sendFeature(CHANNEL_4);
-	Sleep(75);
-	sendFeature(NONE);
-	sendFeature(COMMAND);
-	Sleep(75);
-	sendFeature(NONE);
-	sendFeature(TEAM);
-	Sleep(75);
-	sendFeature(ALL);
-	Sleep(75);
-	sendFeature(NONE);
-}
-
-/* Blinks the device leds/button by activating & deactivating device buttons.
- */
-static void blinkDevice()
-{
-	byte previousState = usbHidCommunicator.getInputReport();
-
-	forceFeature(NONE);
-	Sleep(75);
-	forceFeature(CHANNEL_1 | CHANNEL_2 | CHANNEL_3 | CHANNEL_4);
-	Sleep(100);
-	forceFeature(NONE);
-	Sleep(75);
-	forceFeature(CHANNEL_1 | CHANNEL_2 | CHANNEL_3 | CHANNEL_4);
-	Sleep(100);
-	forceFeature(NONE);
-	Sleep(75);
-	forceFeature(CHANNEL_1 | CHANNEL_2 | CHANNEL_3 | CHANNEL_4);
-	Sleep(100);
-	forceFeature(NONE);
-	Sleep(75);
-	forceFeature(CHANNEL_1 | CHANNEL_2 | CHANNEL_3 | CHANNEL_4);
-	Sleep(100);
-	forceFeature(NONE);
-	Sleep(75);
-	forceFeature(previousState);
-}
-
 /* Reads the last command received from the device
 */
 static byte readCommand()
@@ -316,6 +266,56 @@ static BOOL deactivateButton(size_t command)
 		return FALSE;
 
 	return forceFeature(currentFeature ^ command);
+}
+
+/* Runs a clockwise led chase effect by activating & deactivating all device buttons sequentially
+*/
+static void runDeviceLedChase()
+{
+	sendFeature(CHANNEL_1);
+	Sleep(75);
+	sendFeature(CHANNEL_2);
+	Sleep(75);
+	sendFeature(CHANNEL_3);
+	Sleep(75);
+	sendFeature(CHANNEL_4);
+	Sleep(75);
+	sendFeature(NONE);
+	sendFeature(COMMAND);
+	Sleep(75);
+	sendFeature(NONE);
+	sendFeature(TEAM);
+	Sleep(75);
+	sendFeature(ALL);
+	Sleep(75);
+	sendFeature(NONE);
+}
+
+/* Blinks the device leds/button by activating & deactivating device buttons.
+ */
+static void blinkDevice()
+{
+	byte previousState = usbHidCommunicator.getInputReport();
+
+	forceFeature(NONE);
+	Sleep(75);
+	forceFeature(CHANNEL_1 | CHANNEL_2 | CHANNEL_3 | CHANNEL_4);
+	Sleep(100);
+	forceFeature(NONE);
+	Sleep(75);
+	forceFeature(CHANNEL_1 | CHANNEL_2 | CHANNEL_3 | CHANNEL_4);
+	Sleep(100);
+	forceFeature(NONE);
+	Sleep(75);
+	forceFeature(CHANNEL_1 | CHANNEL_2 | CHANNEL_3 | CHANNEL_4);
+	Sleep(100);
+	forceFeature(NONE);
+	Sleep(75);
+	forceFeature(CHANNEL_1 | CHANNEL_2 | CHANNEL_3 | CHANNEL_4);
+	Sleep(100);
+	forceFeature(NONE);
+	Sleep(75);
+	forceFeature(previousState);
 }
 
 // GameVoiceFunctions factory

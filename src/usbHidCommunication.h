@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2012-2015 JoeBilly
+ * Copyright (c) 2012-2019 JoeBilly
  * Copyright (C) 2010 Simon Inns
  * 
  * HID USB communication functions header
  * usbHidCommunication.h
  * JoeBilly (joebilly@users.sourceforge.net)
- * https://sourceforge.net/projects/ts3gamevoice/
+ * https://github.com/ghoebilly/ts3gamevoice
  *
  * Code adapted from usbHidCommunication
  * v1_1 2010-03-31

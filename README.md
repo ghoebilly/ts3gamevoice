@@ -20,6 +20,19 @@ This TeamSpeak 3 plugin provides support for the Microsoft SideWinder Game Voice
 	* If a message prompts indicating Teamspeak 3 directory cannot be found, launch Teamspeak 3 first
 	* If you cannot install the plugin automatically, this is weird but try to extract the .ts3_plugin file (zip) in _TeamSpeak 3 Client\config_
 
+## Building [![Build Status](https://travis-ci.org/ghoebilly/ts3gamevoice.svg?branch=master)](https://travis-ci.org/ghoebilly/ts3gamevoice)
+
+Requires an environment including setupapi and hid libraries (originally from Windows SDK).
+
+#### Recommended development and build environment
+* Microsoft Windows 7 or greater (including Windows Server)
+* Visual Studio Community
+* MSVC C++ x64/x86 (Desktop development with C++)
+
+Note that ts3_plugin packaging is done by a MSBuild task but is just a zip with the dll and the package.ini.
+
+Travis CI validation build uses a Windows CMake + gcc + ninja environment.
+
 ## Versioning
 
 We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/ghoebilly/ts3gamevoice/tags).

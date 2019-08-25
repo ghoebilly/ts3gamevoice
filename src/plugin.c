@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2012-2015 JoeBilly
- * Copyright (c) 2008-2013 TeamSpeak Systems GmbH
+ * Copyright (c) 2012-2019 JoeBilly
+ * Copyright (c) 2008-2019 TeamSpeak Systems GmbH
  *
  * TeamSpeak 3 SideWinder Game Voice Plugin
  * plugin.c
  * JoeBilly (joebilly@users.sourceforge.net)
- * https://sourceforge.net/projects/ts3gamevoice/
+ * https://github.com/ghoebilly/ts3gamevoice
  *
  *  This file is part of TeamSpeak 3 SideWinder Game Voice Plugin.
  *
@@ -103,7 +103,6 @@ void OpenWeb(LPCSTR url)
 DWORD WINAPI GameVoiceThread(LPVOID pData)
 {
 	byte inputValue;
-	byte featureValue;
 	char debugOutput[50];
 
 	ts3Functions.logMessage("Game Voice thread attached...", LogLevel_DEBUG, "GameVoice Plugin", 0);
@@ -229,7 +228,7 @@ const char* ts3plugin_name() {
 
 /* Plugin version */
 const char* ts3plugin_version() {
-	return "1.4.23";
+	return "1.5.23";
 }
 
 /* Plugin API version. Must be the same as the clients API major version, else the plugin fails to load. */
@@ -653,7 +652,7 @@ const char* ts3plugin_infoTitle() {
  * "data" to NULL to have the client ignore the info data.
  */
 void ts3plugin_infoData(uint64 serverConnectionHandlerID, uint64 id, enum PluginItemType type, char** data) {
-	char* name;
+	//char* name;
 
 	/* For demonstration purpose, display the name of the currently selected server, channel or client. */
 	//switch(type) {
@@ -770,8 +769,8 @@ void ts3plugin_initMenus(struct PluginMenuItem*** menuItems, char** menuIcon) {
 	//CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_CHANNEL, MENU_ID_CHANNEL_2, "Set channel 2", "2.png");
 	//CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_CHANNEL, MENU_ID_CHANNEL_3, "Set channel 3", "3.png");
 	//CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_CHANNEL, MENU_ID_CHANNEL_4, "Set channel 4", "4.png");
-	CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_GLOBAL, MENU_ID_GLOBAL_1, "Visit Web Site", "sf.png");
-	CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_GLOBAL, MENU_ID_GLOBAL_2, "Get Support", "supp.png");
+	CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_GLOBAL, MENU_ID_GLOBAL_1, "Visit Web Site", "github.png");
+	CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_GLOBAL, MENU_ID_GLOBAL_2, "Get Support", "wiki.png");
 	//CREATE_MENU_ITEM(PLUGIN_MENU_TYPE_GLOBAL,  MENU_ID_GLOBAL_2,  "About",  "gv.png");
 	END_CREATE_MENUS;  /* Includes an assert checking if the number of menu items matched */
 
@@ -1323,11 +1322,11 @@ void ts3plugin_onMenuItemEvent(uint64 serverConnectionHandlerID, enum PluginMenu
 			/* Menu global 1 was triggered */
 			// ts3Functions.setPluginMenuEnabled(pluginID, menuItemID, 1);					
 			//SetWhisperList(scHandlerID, NULL);
-			OpenWeb("http://sourceforge.net/projects/ts3gamevoice/");
+			OpenWeb("https://github.com/ghoebilly/ts3gamevoice");
 			break;
 		case MENU_ID_GLOBAL_2:
 			/* Menu global 2 was triggered */
-			OpenWeb("http://sourceforge.net/p/ts3gamevoice/discussion/support/");
+			OpenWeb("https://github.com/ghoebilly/ts3gamevoice/wiki");
 			break;
 		default:
 			break;

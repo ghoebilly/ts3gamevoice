@@ -1,6 +1,6 @@
 /*
  * TeamSpeak 3 SDK
- * Copyright (c) 2008-2013 TeamSpeak Systems GmbH
+ * Copyright (c) 2008-2019 TeamSpeak Systems GmbH
  */
 
 #ifndef PLUGIN_H

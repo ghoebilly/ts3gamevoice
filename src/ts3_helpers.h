@@ -1,11 +1,11 @@
 /* 
- * Copyright (c) 2012-2015 JoeBilly 
+ * Copyright (c) 2012-2019 JoeBilly 
  * Copyright (c) 2010-2012 Jules Blok
  *
  * TeamSpeak 3 helpers functions
  * ts3_helpers.h
  * JoeBilly (joebilly@users.sourceforge.net)
- * https://sourceforge.net/projects/ts3gamevoice/
+ * https://github.com/ghoebilly/ts3gamevoice
  *
  * Code adapted from TeamSpeak 3 G-key plugin 
  * Jules Blok (jules@aerix.nl)
@@ -73,11 +73,11 @@ BOOL logOnError(unsigned int returnCode, char* message)
 	return FALSE;
 }
 
-BOOL connectToBookmark(char* label, PluginConnectTab connectTab, uint64* scHandlerID)
+BOOL connectToBookmark(char* label, enum PluginConnectTab connectTab, uint64* scHandlerID)
 {
 	int i;
 	BOOL ret;
-	PluginBookmarkList* bookmarks;
+	struct PluginBookmarkList* bookmarks;
 
 	char message[40];
 
@@ -92,7 +92,7 @@ BOOL connectToBookmark(char* label, PluginConnectTab connectTab, uint64* scHandl
 	ret = TRUE;
 	for(i=0; i<bookmarks->itemcount; i++)
 	{
-		PluginBookmarkItem item = bookmarks->items[i];
+		struct PluginBookmarkItem item = bookmarks->items[i];
 		
 		// Seems pretty useless to try to connect to a folder, skip it
 		if(!item.isFolder)

@@ -4,7 +4,8 @@
 
 /Debug
 /Releases
-/obj/Release
+/obj
 /bin
-/.vs/gamevoice/v16
 /gamevoice.vcxproj.user
+/.vs
+/cmake

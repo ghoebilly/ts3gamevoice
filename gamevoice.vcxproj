@@ -253,12 +253,6 @@
     <None Include="gamevoice\gv.png">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="gamevoice\sf.png">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="gamevoice\supp.png">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
     <None Include="package_x64.ini">
       <DeploymentContent>true</DeploymentContent>
     </None>
@@ -284,10 +278,10 @@
     <Content Include="gamevoice\gv.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="gamevoice\sf.png">
+    <Content Include="gamevoice\github.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="gamevoice\supp.png">
+    <Content Include="gamevoice\wiki.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="package_x64.ini" Condition="'$(PlatformTarget)'=='x64'">
@@ -296,6 +290,14 @@
     <Content Include="package_x86.ini" Condition="'$(PlatformTarget)'=='x86'">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="gamevoice\github.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
+    <Image Include="gamevoice\wiki.png">
+      <DeploymentContent>true</DeploymentContent>
+    </Image>
   </ItemGroup>
   <Target Name="AfterBuild" Condition="'$(Configuration)' == 'Release'">
     <PropertyGroup>

@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2012-2015 JoeBilly
+ * Copyright (c) 2012-2019 JoeBilly
  * Copyright (C) 2010 Simon Inns
  * 
  * HID USB communication functions
  * usbHidCommunication.c
  * JoeBilly (joebilly@users.sourceforge.net)
- * https://sourceforge.net/projects/ts3gamevoice/
+ * https://github.com/ghoebilly/ts3gamevoice
  *
  * Code adapted from usbHidCommunication
  * v1_1 2010-03-31
@@ -315,14 +315,11 @@ static void findDevice(int usbVid, int usbPid)
 	PSP_DEVICE_INTERFACE_DETAIL_DATA DevIntfDetailData;
 	SP_DEVINFO_DATA                  DevData;
 
-	DWORD dwSize, dwType, dwMemberIdx;
-	HKEY hKey;
-	BYTE lpData[1024];
+	DWORD dwSize, dwMemberIdx;
 
 	char usbId[18];
 	LPTSTR DeviceIDToFind;
 
-	DWORD ErrorStatus;
 	DWORD ErrorStatusWrite;
 	DWORD ErrorStatusRead;
 	DWORD ErrorStatusFeature;

@@ -1,0 +1,16 @@
+language: c
+os: windows
+
+compiler:
+  - gcc
+
+before_script:
+  # Will use ninja for the build
+  - choco install ninja
+  # run cmake; here we assume that the project's
+  # top-level CMakeLists.txt is located at '.'
+  #- cmake ..
+  - cmake -G "Ninja" -DCMAKE_BUILD_TYPE="Release" -DCMAKE_MAKE_PROGRAM="ninja.exe" .
+ 
+script:
+  - ninja

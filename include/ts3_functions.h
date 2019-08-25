@@ -8,6 +8,7 @@ extern "C" {
 #include "clientlib_publicdefinitions.h"
 #include "public_definitions.h"
 #include "public_rare_definitions.h"
+#include "plugin_definitions.h"
 
 /* Functions exported to plugin from main binary */
 struct TS3Functions {
@@ -273,6 +274,7 @@ struct TS3Functions {
 	unsigned int (*createBookmark)(const char* bookmarkuuid, const char* serverLabel, const char* serverAddress, const char* serverPassword, const char* nickname, const char* channel, const char* channelPassword, const char* captureProfile, const char* playbackProfile, const char* hotkeyProfile, const char* soundProfile, const char* uniqueUserId, const char* oneTimeKey, const char* phoneticName);
 	unsigned int (*getPermissionIDByName)(uint64 serverConnectionHandlerID, const char* permissionName, unsigned int* result);
 	unsigned int (*getClientNeededPermission)(uint64 serverConnectionHandlerID, const char* permissionName, int* result);
+	void(*notifyKeyEvent)(const char* pluginID, const char* keyIdentifier, int up_down);
 };
 
 #ifdef __cplusplus

@@ -1,9 +1,7 @@
 #ifndef PUBLIC_DEFINITIONS_H
-//#include "public_errors.h"
-//#include "public_errors_rare.h"
-//#include "public_definitions.h"
-//#include "public_rare_definitions.h"_H
 #define PUBLIC_DEFINITIONS_H
+
+#include "logtypes.h"
 
 //limited length, measured in characters
 #define TS3_MAX_SIZE_CHANNEL_NAME 40
@@ -13,31 +11,32 @@
 #define TS3_MAX_SIZE_REASON_MESSAGE 80
 
 //limited length, measured in bytes (utf8 encoded)
-#define TS3_MAX_SIZE_TEXTMESSAGE 1024
+#define TS3_MAX_SIZE_TEXTMESSAGE 8192
 #define TS3_MAX_SIZE_CHANNEL_TOPIC 255
 #define TS3_MAX_SIZE_CHANNEL_DESCRIPTION 8192
 #define TS3_MAX_SIZE_VIRTUALSERVER_WELCOMEMESSAGE 1024
+#define TS3_SIZE_MYTSID 44
 
 //minimum amount of seconds before a clientID that was in use can be assigned to a new client
 #define TS3_MIN_SECONDS_CLIENTID_REUSE 300
 
 #if defined(WIN32) || defined(__WIN32__) || defined(_WIN32)
-	typedef unsigned __int16 anyID;
-	typedef unsigned __int64 uint64;
-	#ifdef BUILDING_DLL
-		#define EXPORTDLL __declspec(dllexport)
-	#else
-		#define EXPORTDLL
-	#endif
+typedef unsigned __int16 anyID;
+typedef unsigned __int64 uint64;
+#ifdef BUILDING_DLL
+#define EXPORTDLL __declspec(dllexport)
 #else
-	#include <stdint.h>
-	typedef uint16_t anyID;
-	typedef uint64_t uint64;
-	#ifdef BUILDING_DLL
-		#define EXPORTDLL __attribute__ ((visibility("default")))
-	#else
-		#define EXPORTDLL
-	#endif
+#define EXPORTDLL
+#endif
+#else
+#include <stdint.h>
+typedef uint16_t anyID;
+typedef uint64_t uint64;
+#ifdef BUILDING_DLL
+#define EXPORTDLL __attribute__ ((visibility("default")))
+#else
+#define EXPORTDLL
+#endif
 #endif
 
 enum TalkStatus {
@@ -62,7 +61,7 @@ enum CodecEncryptionMode {
 };
 
 enum TextMessageTargetMode {
-	TextMessageTarget_CLIENT=1,
+	TextMessageTarget_CLIENT = 1,
 	TextMessageTarget_CHANNEL,
 	TextMessageTarget_SERVER,
 	TextMessageTarget_MAX
@@ -94,18 +93,18 @@ enum InputDeactivationStatus {
 };
 
 enum ReasonIdentifier {
-	REASON_NONE                              = 0,  //no reason data
-	REASON_MOVED                             = 1,  //{SectionInvoker}
-	REASON_SUBSCRIPTION                      = 2,  //no reason data
-	REASON_LOST_CONNECTION                   = 3,  //reasonmsg=reason
-	REASON_KICK_CHANNEL                      = 4,  //{SectionInvoker} reasonmsg=reason               //{SectionInvoker} is only added server->client
-	REASON_KICK_SERVER                       = 5,  //{SectionInvoker} reasonmsg=reason               //{SectionInvoker} is only added server->client
-	REASON_KICK_SERVER_BAN                   = 6,  //{SectionInvoker} reasonmsg=reason bantime=time  //{SectionInvoker} is only added server->client
-	REASON_SERVERSTOP                        = 7,  //reasonmsg=reason
-	REASON_CLIENTDISCONNECT                  = 8,  //reasonmsg=reason
-	REASON_CHANNELUPDATE                     = 9,  //no reason data
-	REASON_CHANNELEDIT                       = 10, //{SectionInvoker}
-	REASON_CLIENTDISCONNECT_SERVER_SHUTDOWN  = 11,  //reasonmsg=reason
+	REASON_NONE = 0,  //no reason data
+	REASON_MOVED = 1,  //{SectionInvoker}
+	REASON_SUBSCRIPTION = 2,  //no reason data
+	REASON_LOST_CONNECTION = 3,  //reasonmsg=reason
+	REASON_KICK_CHANNEL = 4,  //{SectionInvoker} reasonmsg=reason               //{SectionInvoker} is only added server->client
+	REASON_KICK_SERVER = 5,  //{SectionInvoker} reasonmsg=reason               //{SectionInvoker} is only added server->client
+	REASON_KICK_SERVER_BAN = 6,  //{SectionInvoker} reasonmsg=reason bantime=time  //{SectionInvoker} is only added server->client
+	REASON_SERVERSTOP = 7,  //reasonmsg=reason
+	REASON_CLIENTDISCONNECT = 8,  //reasonmsg=reason
+	REASON_CHANNELUPDATE = 9,  //no reason data
+	REASON_CHANNELEDIT = 10, //{SectionInvoker}
+	REASON_CLIENTDISCONNECT_SERVER_SHUTDOWN = 11,  //reasonmsg=reason
 };
 
 enum ChannelProperties {
@@ -124,6 +123,8 @@ enum ChannelProperties {
 	CHANNEL_FLAG_PASSWORD,                  //Available for all channels that are "in view", always up-to-date
 	CHANNEL_CODEC_LATENCY_FACTOR,           //Available for all channels that are "in view", always up-to-date
 	CHANNEL_CODEC_IS_UNENCRYPTED,           //Available for all channels that are "in view", always up-to-date
+	CHANNEL_SECURITY_SALT,                  //Not available client side, not used in teamspeak, only SDK. Sets the options+salt for security hash.
+	CHANNEL_DELETE_DELAY,                   //How many seconds to wait before deleting this channel
 	CHANNEL_ENDMARKER,
 };
 
@@ -147,6 +148,9 @@ enum ClientProperties {
 	CLIENT_IS_MUTED,                        //only make sense on the client side locally, "1" if this client is currently muted by us, "0" if he is not
 	CLIENT_IS_RECORDING,                    //automatically up-to-date for any client "in view"
 	CLIENT_VOLUME_MODIFICATOR,              //internal use
+	CLIENT_VERSION_SIGN,					//sign
+	CLIENT_SECURITY_HASH,                   //SDK use, not used by teamspeak. Hash is provided by an outside source. A channel will use the security salt + other client data to calculate a hash, which must be the same as the one provided here.
+	CLIENT_ENCRYPTION_CIPHERS,              //internal use
 	CLIENT_ENDMARKER,
 };
 
@@ -163,6 +167,7 @@ enum VirtualServerProperties {
 	VIRTUALSERVER_CREATED,                           //available when connected, stores the time when the server was created
 	VIRTUALSERVER_UPTIME,                            //only available on request (=> requestServerVariables), the time since the server was started
 	VIRTUALSERVER_CODEC_ENCRYPTION_MODE,             //available and always up-to-date when connected
+	VIRTUALSERVER_ENCRYPTION_CIPHERS,                //internal use
 	VIRTUALSERVER_ENDMARKER,
 };
 
@@ -222,56 +227,143 @@ enum ConnectionProperties {
 	CONNECTION_ENDMARKER,
 };
 
-enum LogTypes {
-	LogType_NONE          = 0x0000,
-	LogType_FILE          = 0x0001,
-	LogType_CONSOLE       = 0x0002,
-	LogType_USERLOGGING   = 0x0004,
-	LogType_NO_NETLOGGING = 0x0008,
-	LogType_DATABASE      = 0x0010,
-};
-
-enum LogLevel {
-	LogLevel_CRITICAL = 0, //these messages stop the program
-	LogLevel_ERROR,        //everything that is really bad, but not so bad we need to shut down
-	LogLevel_WARNING,      //everything that *might* be bad
-	LogLevel_DEBUG,        //output that might help find a problem
-	LogLevel_INFO,         //informational output, like "starting database version x.y.z"
-	LogLevel_DEVEL         //developer only output (will not be displayed in release mode)
-};
-
 typedef struct {
-    float x;        /* X co-ordinate in 3D space. */
-    float y;        /* Y co-ordinate in 3D space. */
-    float z;        /* Z co-ordinate in 3D space. */
+	float x;        /* X co-ordinate in 3D space. */
+	float y;        /* Y co-ordinate in 3D space. */
+	float z;        /* Z co-ordinate in 3D space. */
 } TS3_VECTOR;
 
 enum GroupWhisperType {
-	GROUPWHISPERTYPE_SERVERGROUP        = 0,
-	GROUPWHISPERTYPE_CHANNELGROUP       = 1,
-	GROUPWHISPERTYPE_CHANNELCOMMANDER   = 2,
-	GROUPWHISPERTYPE_ALLCLIENTS         = 3,
+	GROUPWHISPERTYPE_SERVERGROUP = 0,
+	GROUPWHISPERTYPE_CHANNELGROUP = 1,
+	GROUPWHISPERTYPE_CHANNELCOMMANDER = 2,
+	GROUPWHISPERTYPE_ALLCLIENTS = 3,
 	GROUPWHISPERTYPE_ENDMARKER,
 };
 
 enum GroupWhisperTargetMode {
-	GROUPWHISPERTARGETMODE_ALL                   = 0,
-	GROUPWHISPERTARGETMODE_CURRENTCHANNEL        = 1,
-	GROUPWHISPERTARGETMODE_PARENTCHANNEL         = 2,
-	GROUPWHISPERTARGETMODE_ALLPARENTCHANNELS     = 3,
-	GROUPWHISPERTARGETMODE_CHANNELFAMILY         = 4,
+	GROUPWHISPERTARGETMODE_ALL = 0,
+	GROUPWHISPERTARGETMODE_CURRENTCHANNEL = 1,
+	GROUPWHISPERTARGETMODE_PARENTCHANNEL = 2,
+	GROUPWHISPERTARGETMODE_ALLPARENTCHANNELS = 3,
+	GROUPWHISPERTARGETMODE_CHANNELFAMILY = 4,
 	GROUPWHISPERTARGETMODE_ANCESTORCHANNELFAMILY = 5,
-	GROUPWHISPERTARGETMODE_SUBCHANNELS           = 6,
+	GROUPWHISPERTARGETMODE_SUBCHANNELS = 6,
 	GROUPWHISPERTARGETMODE_ENDMARKER,
 };
 
-enum MonoSoundDestination{ 
-  MONO_SOUND_DESTINATION_ALL                  =0, /* Send mono sound to all available speakers */
-  MONO_SOUND_DESTINATION_FRONT_CENTER         =1, /* Send mono sound to front center speaker if available */
-  MONO_SOUND_DESTINATION_FRONT_LEFT_AND_RIGHT =2  /* Send mono sound to front left/right speakers if available */
+enum MonoSoundDestination {
+	MONO_SOUND_DESTINATION_ALL = 0, /* Send mono sound to all available speakers */
+	MONO_SOUND_DESTINATION_FRONT_CENTER = 1, /* Send mono sound to front center speaker if available */
+	MONO_SOUND_DESTINATION_FRONT_LEFT_AND_RIGHT = 2  /* Send mono sound to front left/right speakers if available */
 };
 
-//defines for speaker locations used by some sound callbacks
+enum SecuritySaltOptions {
+	SECURITY_SALT_CHECK_NICKNAME = 1, /* put nickname into security hash */
+	SECURITY_SALT_CHECK_META_DATA = 2  /* put (game)meta data into security hash */
+};
+
+/*this enum is used to disable client commands on the server*/
+enum ClientCommand {
+	CLIENT_COMMAND_requestConnectionInfo = 0,
+	CLIENT_COMMAND_requestClientMove = 1,
+	CLIENT_COMMAND_requestXXMuteClients = 2,
+	CLIENT_COMMAND_requestClientKickFromXXX = 3,
+	CLIENT_COMMAND_flushChannelCreation = 4,
+	CLIENT_COMMAND_flushChannelUpdates = 5,
+	CLIENT_COMMAND_requestChannelMove = 6,
+	CLIENT_COMMAND_requestChannelDelete = 7,
+	CLIENT_COMMAND_requestChannelDescription = 8,
+	CLIENT_COMMAND_requestChannelXXSubscribeXXX = 9,
+	CLIENT_COMMAND_requestServerConnectionInfo = 10,
+	CLIENT_COMMAND_requestSendXXXTextMsg = 11,
+	CLIENT_COMMAND_filetransfers = 12,
+	CLIENT_COMMAND_ENDMARKER
+};
+
+/* Access Control List*/
+enum ACLType {
+	ACL_NONE = 0,
+	ACL_WHITE_LIST = 1,
+	ACL_BLACK_LIST = 2
+};
+
+/* file transfer actions*/
+enum FTAction {
+	FT_INIT_SERVER = 0,
+	FT_INIT_CHANNEL = 1,
+	FT_UPLOAD = 2,
+	FT_DOWNLOAD = 3,
+	FT_DELETE = 4,
+	FT_CREATEDIR = 5,
+	FT_RENAME = 6,
+	FT_FILELIST = 7,
+	FT_FILEINFO = 8
+};
+
+/* file transfer status */
+enum FileTransferState {
+	FILETRANSFER_INITIALISING = 0,
+	FILETRANSFER_ACTIVE,
+	FILETRANSFER_FINISHED,
+};
+
+/* file transfer types */
+enum {
+	FileListType_Directory = 0,
+	FileListType_File,
+};
+
+/* some structs to handle variables in callbacks */
+#define MAX_VARIABLES_EXPORT_COUNT 64
+struct VariablesExportItem {
+	unsigned char itemIsValid;    /* This item has valid values. ignore this item if 0 */
+	unsigned char proposedIsSet;  /* The value in proposed is set. if 0 ignore proposed */
+	const char* current;          /* current value (stored in memory) */
+	const char* proposed;         /* New value to change to (const, so no updates please) */
+};
+
+struct VariablesExport {
+	struct VariablesExportItem items[MAX_VARIABLES_EXPORT_COUNT];
+};
+
+struct ClientMiniExport {
+	anyID ID;
+	uint64 channel;
+	const char* ident;
+	const char* nickname;
+};
+
+struct TransformFilePathExport {
+	uint64 channel;
+	const char* filename;
+	int action;
+	int transformedFileNameMaxSize;
+	int channelPathMaxSize;
+};
+
+struct TransformFilePathExportReturns {
+	char* transformedFileName;
+	char* channelPath;
+	int logFileAction;
+};
+
+struct FileTransferCallbackExport {
+	anyID clientID;
+	anyID transferID;
+	anyID remoteTransferID;
+	unsigned int status;
+	const char* statusMessage;
+	uint64 remotefileSize;
+	uint64 bytes;
+	int isSender;
+};
+
+/*define for file transfer bandwith limits*/
+#define BANDWIDTH_LIMIT_UNLIMITED 0xFFFFFFFFFFFFFFFFll
+
+
+/*defines for speaker locations used by some sound callbacks*/
 #ifndef SPEAKER_FRONT_LEFT
 #define SPEAKER_FRONT_LEFT              0x1
 #define SPEAKER_FRONT_RIGHT             0x2
@@ -296,4 +388,4 @@ enum MonoSoundDestination{
 #define SPEAKER_HEADPHONES_RIGHT        0x20000000
 #define SPEAKER_MONO                    0x40000000
 
-#endif //PUBLIC_DEFINITIONS_H
+#endif /*PUBLIC_DEFINITIONS_H*/

@@ -1,10 +1,10 @@
 /* 
- * Copyright (c) 2012-2014 JoeBilly 
+ * Copyright (c) 2012-2019 JoeBilly 
  *
  * Game Voice helper functions header
  * gamevoice_functions.h
  * JoeBilly (joebilly@users.sourceforge.net)
- * https://sourceforge.net/projects/ts3gamevoice/
+ * https://github.com/ghoebilly/ts3gamevoice
  *
  *  This file is part of TeamSpeak 3 SideWinder Game Voice Plugin.
  *
