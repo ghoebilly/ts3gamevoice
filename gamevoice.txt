@@ -9,6 +9,11 @@
    ! Important - Take note!
 ===============================================================================
 
+=== 1.5.23 25 Aug 2019
+ + Updated to latest ts3client-pluginsdk sources
+ + Added Travis CI build with CMake and ninja 
+ + Finished github migration (references)
+
 === 1.4.23 18 Aug 2019
  + Updated for API 23
  + Added README.md
